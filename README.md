@@ -1,6 +1,6 @@
 # Fiskalnik
 
-A Chrome extension that adds Serbian fiscal receipts to Google Calendar (repository: `chrome-fiskalnik`).
+A browser extension for Chrome and Firefox (desktop and Android) that adds Serbian fiscal receipts to Google Calendar.
 *Not affiliated with, endorsed or sponsored by the Tax Administration of Serbia or Google.*
 Open a receipt on `suf.purs.gov.rs` and click **Додај у календар**, or scan the receipt's QR code from the toolbar
 popup. A prefilled Google Calendar event opens; you press **Save**.
@@ -9,9 +9,21 @@ signed in to.
 
 ## Install (developer mode)
 
+**Chrome**
+
 1. Open `chrome://extensions` and turn on **Developer mode** (top right).
 2. **Load unpacked** → choose this folder.
 3. Open a receipt link, `https://suf.purs.gov.rs/v/?vl=…` (reload the tab if it was already open).
+
+**Firefox** (140 or newer; the Firefox build has not been tried in Firefox yet, see `store/firefox/CHECKLIST.md`)
+
+1. `python3 scripts/build.py`
+2. Open `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on…** → `dist/firefox/manifest.json`.
+   It stays until Firefox is closed.
+3. If the button doesn't show on a receipt page: `about:addons` → Fiskalnik → **Permissions** → allow `suf.purs.gov.rs`.
+
+**Firefox for Android** (142 or newer): phone connected with USB debugging, then
+`npx web-ext run -t firefox-android -s dist/firefox --adb-device <id>`.
 
 ## Use
 
@@ -46,21 +58,26 @@ so events saved to its **Receipts** calendar show up there too.
   discounts) haven't been tested on real receipts.
 - If the tax portal changes its page, fields may come out empty.
 
-## Publishing (Chrome Web Store)
+## Publishing
 
-Everything for the store is in `store/` and `docs/`; the steps are in [`store/CHECKLIST.md`](store/CHECKLIST.md).
+One codebase, one package per store. `manifest.json` is the Chrome manifest; the Firefox one is the same with
+`manifest.firefox.json` merged over it (add-on ID, minimum versions, data-collection declaration).
 
 ```bash
-python3 scripts/build.py      # → dist/fiskalnik-<version>.zip (upload this)
-scripts/screenshots.sh        # → store/screenshots/*.png, store/promo-440x280.png, docs/og-image.png
+python3 scripts/build.py      # → dist/fiskalnik-chrome-<version>.zip, dist/fiskalnik-firefox-<version>.zip, dist/firefox/
+scripts/screenshots.sh        # → store/chrome/screenshots/*.png, store/chrome/promo-440x280.png, docs/og-image.png
 ```
+
+- Chrome Web Store: [`store/chrome/CHECKLIST.md`](store/chrome/CHECKLIST.md)
+- addons.mozilla.org (Firefox, desktop and Android): [`store/firefox/CHECKLIST.md`](store/firefox/CHECKLIST.md)
 
 Privacy policy: [docs/privacy.html](docs/privacy.html) (published with GitHub Pages from `docs/`).
 
 ## Project layout
 
 ```
-manifest.json        Manifest V3; permissions: activeTab, host https://suf.purs.gov.rs/*
+manifest.json        Manifest V3 (Chrome); permissions: activeTab, host https://suf.purs.gov.rs/*
+manifest.firefox.json  what the Firefox manifest adds (merged in by scripts/build.py)
 popup.html           the scan page (toolbar popup; the same page in a tab for file / drag and drop)
 src/parser.js        receipt page HTML → receipt object (pure, tested in Node; shared with the Receipt Scanner PWA)
 src/calendar-url.js  receipt object → prefilled Google Calendar link (pure, tested in Node)
@@ -70,9 +87,10 @@ src/popup.js         image → QR → fetch receipt → show journal → open ca
 src/popup.css
 vendor/              zxing-wasm 3.1.7 reader (QR decoding), bundled so nothing loads from a CDN
 icons/               icon.svg (48 px and up), icon-small.svg (16/32 px), render.py → icon16/32/48/128.png
-scripts/build.py     store upload package (dist/…zip)
+scripts/build.py     store upload packages, one per browser (dist/)
 scripts/screenshots.sh  store images with headless Chromium
-store/               listing.md (what goes where), fields/ (one text file per store field), CHECKLIST.md, images
+store/chrome/        Chrome Web Store: listing.md (what goes where), fields/ (one text file per field), CHECKLIST.md, images
+store/firefox/       addons.mozilla.org: the same three
 docs/                GitHub Pages: landing page and privacy policy
 test/parser.test.js        unit tests for src/parser.js
 test/calendar-url.test.js  unit tests for src/calendar-url.js
@@ -94,7 +112,11 @@ In the harness "Додај у календар" opens nothing; the links it woul
 
 Icons: edit `icons/icon.svg` / `icons/icon-small.svg`, then `python3 icons/render.py` (needs `cairosvg`).
 
-After changing the extension: ↻ on its card in `chrome://extensions`, then reload the receipt tab.
+After changing the extension: ↻ on its card in `chrome://extensions`, then reload the receipt tab
+(Firefox: rebuild, then **Reload** in `about:debugging`).
+
+Browser differences belong in `src/` as feature checks (the popup hides *scan this tab* where the browser
+can't take the picture), not in separate files.
 
 `src/parser.js` is kept identical to `js/parser.js` in the Receipt Scanner PWA; change both together.
 

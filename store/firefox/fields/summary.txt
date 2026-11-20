@@ -1,0 +1,1 @@
+Add Serbian fiscal receipts (suf.purs.gov.rs) to Google Calendar, from the receipt page or by scanning its QR code. No account, no server. / Фискални рачун у Google календару, са странице рачуна или скенирањем QR кода.

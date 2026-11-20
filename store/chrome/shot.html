@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <!-- Chrome Web Store screenshots, 1280×800: store/shot.html?n=1|2|3
-       Rendered to store/screenshots/*.png by scripts/screenshots.sh (needs the project served over http).
+  <!-- Chrome Web Store screenshots, 1280×800: store/chrome/shot.html?n=1|2|3
+       Rendered to store/chrome/screenshots/*.png by scripts/screenshots.sh (needs the project served over http).
        The extension shown is the real popup.html in test/harness.html, with the made-up receipt from test/fixture.js. -->
   <style>
     html, body { margin: 0; width: 1280px; height: 800px; overflow: hidden; }
@@ -28,7 +28,7 @@
 </head>
 <body>
   <div class="text">
-    <div class="brand"><img src="../icons/icon128.png" alt="">Fiskalnik</div>
+    <div class="brand"><img src="../../icons/icon128.png" alt="">Fiskalnik</div>
     <h1 id="headline"></h1>
     <p id="caption"></p>
   </div>
@@ -41,17 +41,17 @@
     <pre id="event-details"></pre>
   </div>
 
-  <script src="../test/fixture.js"></script>
-  <script src="../src/parser.js"></script>
-  <script src="../src/calendar-url.js"></script>
+  <script src="../../test/fixture.js"></script>
+  <script src="../../src/parser.js"></script>
+  <script src="../../src/calendar-url.js"></script>
   <script>
     const SHOTS = {
       1: { headline: 'Scan the QR code of a fiscal receipt',
            caption: 'From the tab you are looking at, a pasted screenshot or an image file.',
-           frame: ['../test/harness.html', 340, 250] },
+           frame: ['../../test/harness.html', 340, 250] },
       2: { headline: 'See the receipt before you add it',
            caption: 'Fiskalnik reads it from the tax portal and shows it just as it was printed.',
-           frame: ['../test/harness.html?tab&scan', 470, 720] },
+           frame: ['../../test/harness.html?tab&scan', 470, 720] },
       3: { headline: 'A calendar event, already filled in',
            caption: 'Merchant, total, date and time, items and VAT. Google Calendar opens, you press Save.' },
     };

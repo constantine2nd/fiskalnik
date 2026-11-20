@@ -219,9 +219,12 @@ document.addEventListener('paste', e => {
 });
 
 // ── Drag and drop (tab mode only) ─────────────────────────────
+// "Scan this tab" needs the popup (the full-tab page has no tab behind it) and a browser that can
+// take the picture.
+if (IN_TAB || !chrome.tabs?.captureVisibleTab) $('scan-tab').classList.add('hidden');
+
 if (IN_TAB) {
   document.body.classList.add('in-tab');
-  $('scan-tab').classList.add('hidden');
   $('drop-hint').classList.remove('hidden');
   const drop = $('drop');
   document.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });

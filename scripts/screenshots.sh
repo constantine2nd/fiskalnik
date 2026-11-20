@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Render the Chrome Web Store images with headless Chromium:
-#   store/screenshots/1-scan.png, 2-receipt.png, 3-event.png  (1280×800, from store/shot.html: the real popup with the made-up receipt)
-#   store/promo-440x280.png                                    (small promo tile, from store/promo.html)
-#   docs/og-image.png                                          (1200×627 link-preview card, from store/og.html)
+#   store/chrome/screenshots/1-scan.png, 2-receipt.png, 3-event.png  (1280×800, from store/chrome/shot.html: the real popup with the made-up receipt)
+#   store/chrome/promo-440x280.png                                    (small promo tile, from store/chrome/promo.html)
+#   docs/og-image.png                                          (1200×627 link-preview card, from store/chrome/og.html)
 #   docs/receipt.png                                           (copy of 2-receipt.png for the landing page)
 # Usage: scripts/screenshots.sh [path-to-chrome]   (default: Playwright's chrome-headless-shell, then google-chrome/chromium)
 set -euo pipefail
@@ -30,10 +30,10 @@ shot() { # shot <output.png> <width> <height> <url>
   echo "$1"
 }
 
-mkdir -p store/screenshots
-shot store/screenshots/1-scan.png    1280 800 "http://127.0.0.1:$PORT/store/shot.html?n=1"
-shot store/screenshots/2-receipt.png 1280 800 "http://127.0.0.1:$PORT/store/shot.html?n=2"
-shot store/screenshots/3-event.png   1280 800 "http://127.0.0.1:$PORT/store/shot.html?n=3"
-shot store/promo-440x280.png         440  280 "http://127.0.0.1:$PORT/store/promo.html"
-shot docs/og-image.png               1200 627 "http://127.0.0.1:$PORT/store/og.html"
-cp store/screenshots/2-receipt.png docs/receipt.png && echo docs/receipt.png
+mkdir -p store/chrome/screenshots
+shot store/chrome/screenshots/1-scan.png    1280 800 "http://127.0.0.1:$PORT/store/chrome/shot.html?n=1"
+shot store/chrome/screenshots/2-receipt.png 1280 800 "http://127.0.0.1:$PORT/store/chrome/shot.html?n=2"
+shot store/chrome/screenshots/3-event.png   1280 800 "http://127.0.0.1:$PORT/store/chrome/shot.html?n=3"
+shot store/chrome/promo-440x280.png         440  280 "http://127.0.0.1:$PORT/store/chrome/promo.html"
+shot docs/og-image.png               1200 627 "http://127.0.0.1:$PORT/store/chrome/og.html"
+cp store/chrome/screenshots/2-receipt.png docs/receipt.png && echo docs/receipt.png

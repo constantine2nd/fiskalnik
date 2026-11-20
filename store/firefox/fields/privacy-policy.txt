@@ -1,0 +1,18 @@
+Fiskalnik reads a Serbian fiscal receipt only when you ask it to, and opens a Google Calendar event form filled in with that receipt, in your own browser. It stores nothing and sends nothing to the developer. There are no accounts, no analytics and no ads.
+
+What it reads
+- A receipt page you have open on suf.purs.gov.rs, when you click "Додај у календар": merchant name, address and tax number, receipt number, date and time, cashier, items, totals, VAT and payment method.
+- An image you give it (a picture of the current tab when you click "Скенирај QR на овој картици", or an image you paste, choose or drop). It is searched for a QR code inside your browser and then discarded.
+
+What it stores
+Nothing. The extension has no storage of its own and keeps no history of receipts.
+
+What it sends, and to whom
+- To the Tax Administration's portal (suf.purs.gov.rs): when a QR code contains a receipt link, the extension downloads that receipt page, as if you opened the link yourself.
+- To Google Calendar (calendar.google.com): when you click "Додај у календар", a new tab opens Google Calendar's new-event form. The receipt details and the receipt link are part of that link, so Google receives them in that request. The event is saved only if you press Save, in the Google account you are signed in to.
+No data is sent to the developer or to any other server.
+
+The data is not sold or shared with third parties other than as described above, and is used only to create your calendar event.
+
+Full policy: https://constantine2nd.github.io/fiskalnik/privacy.html
+Contact: https://github.com/constantine2nd/fiskalnik/issues

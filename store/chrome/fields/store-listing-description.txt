@@ -20,7 +20,7 @@
 • Без налога, без сервера, без праћења, без реклама
 • Додатак ништа не чува и ништа не шаље аутору
 • Рачун се чита са портала Пореске управе и предаје Google календару у вашем прегледачу, тек када кликнете
-• Отворен код (MIT): https://github.com/constantine2nd/chrome-fiskalnik
+• Отворен код (MIT): https://github.com/constantine2nd/fiskalnik
 
 ENGLISH
 
@@ -42,7 +42,7 @@ PRIVATE BY DESIGN
 • No account, no server, no tracking, no ads
 • The extension stores nothing and sends nothing to the developer
 • The receipt is read from the tax portal and handed to Google Calendar in your own browser, only when you click
-• Open source (MIT): https://github.com/constantine2nd/chrome-fiskalnik
+• Open source (MIT): https://github.com/constantine2nd/fiskalnik
 
 NOTES
 • The interface is in Serbian.

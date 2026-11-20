@@ -12,8 +12,8 @@ the text for that field. Choices that are not text (drop-downs, checkboxes) are 
 | Category | Productivity → Workflow & Planning ("Tools" also fits) |
 | Language | Serbian (the interface is Serbian; the description carries both languages) |
 | Store icon (128×128) | `icons/icon128.png` |
-| Screenshots (1280×800) | `store/screenshots/1-scan.png`, `2-receipt.png`, `3-event.png` |
-| Small promo tile (440×280) | `store/promo-440x280.png` |
+| Screenshots (1280×800) | `store/chrome/screenshots/1-scan.png`, `2-receipt.png`, `3-event.png` |
+| Small promo tile (440×280) | `store/chrome/promo-440x280.png` |
 | Marquee (1400×560) | optional, not made |
 | Official URL | **None** (only lists sites verified in Google Search Console) |
 | Homepage URL | [`fields/store-listing-homepage-url.txt`](fields/store-listing-homepage-url.txt) |

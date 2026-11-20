@@ -1,0 +1,14 @@
+No sign-in is needed to try the add-on (a Google account is needed only to save the final calendar event).
+1. Open this real fiscal receipt on the Serbian Tax Administration's portal: <PASTE A RECEIPT LINK, https://suf.purs.gov.rs/v/?vl=...>
+2. Click "Додај у календар" (Add to calendar) in the top-right corner. Google Calendar's new-event form opens, filled in with the receipt.
+3. QR scan: with that page open, click the toolbar button, then "Скенирај QR на овој картици" (Scan the QR on this tab). The receipt appears in the popup; "Додај у календар" opens the same event form.
+The interface is in Serbian because the receipts and their users are Serbian.
+
+Source code: https://github.com/constantine2nd/fiskalnik (MIT). The add-on's own code (src/, popup.html) is not minified, bundled or generated; the package is the repository's files as they are, built by scripts/build.py, which only zips them and merges manifest.firefox.json into manifest.json.
+
+Third-party code, unmodified, in vendor/:
+- zxing-reader.js = dist/iife/reader/index.js
+- zxing_reader.wasm = dist/reader/zxing_reader.wasm
+both from the npm package zxing-wasm 3.1.7 (https://www.npmjs.com/package/zxing-wasm/v/3.1.7, MIT, https://github.com/Sec-ant/zxing-wasm). It decodes the QR code. The .wasm file is loaded from the package, never from the network; the manifest's CSP has 'wasm-unsafe-eval' for it.
+
+Data collection: the manifest declares websiteContent and financialAndPaymentInfo because, when the user clicks "Додај у календар", the receipt (a record of a purchase, read from a web page) is passed to Google Calendar inside the link that is opened. Nothing is sent to the developer.
