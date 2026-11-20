@@ -15,14 +15,15 @@ signed in to.
 2. **Load unpacked** → choose this folder.
 3. Open a receipt link, `https://suf.purs.gov.rs/v/?vl=…` (reload the tab if it was already open).
 
-**Firefox** (140 or newer; the Firefox build has not been tried in Firefox yet, see `store/firefox/CHECKLIST.md`)
+**Firefox** (140 or newer)
 
 1. `python3 scripts/build.py`
 2. Open `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on…** → `dist/firefox/manifest.json`.
    It stays until Firefox is closed.
 3. If the button doesn't show on a receipt page: `about:addons` → Fiskalnik → **Permissions** → allow `suf.purs.gov.rs`.
 
-**Firefox for Android** (142 or newer): phone connected with USB debugging, then
+**Firefox for Android** (142 or newer): phone connected with USB debugging and *Remote debugging via USB* on in
+Firefox's settings, then
 `npx web-ext run -t firefox-android -s dist/firefox --adb-device <id>`.
 
 ## Use
@@ -37,6 +38,11 @@ location, and the items, total, VAT and receipt link in the description. Pick th
   photo). Zoom in if the code is small.
 - **Налепи слику** (Ctrl+V) takes a screenshot or a copied image.
 - **Изабери слику…** opens the same page in a full tab, where you can choose an image file or drag one in.
+
+On a receipt page the scan button needs no QR code: it uses the page's own link.
+
+In Firefox for Android the same page opens full screen (⋮ → Extensions → Fiskalnik) with **Сликај рачун** first,
+which opens the camera; **Изабери слику…** opens your photos.
 
 The popup shows the receipt as it is printed, with its QR code; **Додај у календар** above it opens the event.
 

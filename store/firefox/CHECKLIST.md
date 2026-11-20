@@ -10,22 +10,24 @@ What's prepared in this repo, and the steps only you can do (testing in Firefox,
 - [x] Privacy policy text (`fields/privacy-policy.txt`) and page (`docs/privacy.html`)
 - [x] Screenshots: the Chrome ones, `store/chrome/screenshots/`
 
-## Test first (not done yet: the Firefox build has not been run in Firefox)
+## Test first (done on desktop Firefox and on Firefox 160 for Android, Android 16)
 
-- [ ] **Lint**: `npx web-ext lint -s dist/firefox` → no errors
-- [ ] **Desktop Firefox**: `about:debugging#/runtime/this-firefox` → *Load Temporary Add-on…* → `dist/firefox/manifest.json`.
+- [x] **Lint**: `npx web-ext lint -s dist/firefox` → no errors (0 errors, 0 notices, 0 warnings with web-ext 10.8.0)
+- [x] **Desktop Firefox**: `about:debugging#/runtime/this-firefox` → *Load Temporary Add-on…* → `dist/firefox/manifest.json`.
       Open a receipt page: the "Додај у календар" button appears and opens the calendar form. Toolbar button →
       scan the QR on the tab, paste an image, choose an image.
       If the button does not appear on the receipt page: `about:addons` → Fiskalnik → *Permissions* → allow
       `suf.purs.gov.rs`.
-- [ ] **Firefox for Android** (phone with USB debugging on, *Remote debugging via USB* on in Firefox settings):
+- [x] **Firefox for Android** (phone with USB debugging on, *Remote debugging via USB* on in Firefox's own settings,
+      at the bottom; Firefox must stay open and connected, the add-on is removed when it disconnects):
       `npx web-ext run -t firefox-android -s dist/firefox --adb-device <id from "adb devices">`
       Check, in this order:
       1. the calendar link: does "Додај у календар" open a filled-in event (in the Calendar app or on the web)?
          Everything else depends on this.
       2. the button on a receipt page
-      3. the extension page (⋮ → Extensions → Fiskalnik): *Изабери слику…* with the camera and with a saved photo
-      4. whether *Скенирај QR на овој картици* is shown and works; it hides itself if Firefox can't take the picture
+      3. the extension page (⋮ → Extensions → Fiskalnik): *Сликај рачун* (camera) and *Изабери слику…* (saved photo)
+      4. *Скенирај QR на овој картици*: on a receipt page it uses the page's own link; elsewhere it takes a picture
+         of the tab (it hides itself if Firefox can't)
 - [ ] **A receipt link for the reviewer** in `store/firefox/fields/notes-to-reviewer.txt`
 
 ## On addons.mozilla.org

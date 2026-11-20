@@ -2,6 +2,8 @@
 <html lang="sr">
 <head>
   <meta charset="utf-8">
+  <!-- Firefox for Android shows this page full screen; without this it is laid out 980 px wide and shrunk -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <title>Fiskalnik</title>
   <link rel="stylesheet" href="src/popup.css">
@@ -21,6 +23,12 @@
     </svg>
     Скенирај QR на овој картици
   </button>
+  <button id="take-photo" class="primary hidden">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/>
+    </svg>
+    Сликај рачун
+  </button>
   <button id="pick-file" class="secondary">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m21 16-5-5-8 8"/>
@@ -29,6 +37,7 @@
   </button>
   <div id="drop">Налепи слику <kbd>Ctrl</kbd>+<kbd>V</kbd><span id="drop-hint" class="hidden"> или је превуци овде</span></div>
   <input type="file" id="file" accept="image/*" class="hidden">
+  <input type="file" id="camera" accept="image/*" capture="environment" class="hidden">
 
   <div id="status" role="status" aria-live="polite"></div>
   <section id="receipt" class="hidden" aria-label="Рачун"></section>

@@ -6,6 +6,7 @@
 //   tab   — file picker, drag and drop, paste.
 
 const IN_TAB = new URLSearchParams(location.search).has('tab');
+const MOBILE = /Android/i.test(navigator.userAgent);
 const RECEIPT_HOST = 'suf.purs.gov.rs';
 
 const $ = id => document.getElementById(id);
@@ -21,7 +22,7 @@ function setStatus(text, kind = '') {
 }
 
 function setBusy(busy) {
-  for (const id of ['scan-tab', 'pick-file']) $(id).disabled = busy;
+  for (const id of ['scan-tab', 'pick-file', 'take-photo']) $(id).disabled = busy;
 }
 
 function el(tag, className, text) {
@@ -82,7 +83,12 @@ function renderSummary(receipt) {
 // Shows the receipt for review; the calendar form opens only when the user presses the button.
 function showReceipt(receipt, calendarUrl) {
   const add = el('button', 'primary', 'Додај у календар');
-  add.addEventListener('click', () => chrome.tabs.create({ url: calendarUrl }));
+  add.addEventListener('click', async () => {
+    await chrome.tabs.create({ url: calendarUrl });
+    // Desktop closes the popup by itself when the new tab takes focus. Firefox for Android leaves
+    // it on top of the new tab, so close it to reveal the calendar.
+    if (!IN_TAB) window.close();
+  });
 
   receiptEl.replaceChildren(add, receipt.preHtml ? renderJournal(receipt.preHtml) : renderSummary(receipt));
   receiptEl.classList.remove('hidden');
@@ -153,7 +159,7 @@ async function decodeQr(blob) {
 // aborted run stops at its next checkpoint and leaves the status and buttons alone.
 let currentRun = null;
 
-// source: an image Blob, or an async function that produces one (the tab screenshot).
+// source: an image Blob, a receipt link, or an async function that produces either (the current tab).
 async function handleImage(source) {
   currentRun?.abort();
   currentRun = new AbortController();
@@ -162,12 +168,15 @@ async function handleImage(source) {
   setBusy(true);
   receiptEl.classList.add('hidden');
   try {
-    const blob = typeof source === 'function' ? await source() : source;
+    const input = typeof source === 'function' ? await source() : source;
     signal.throwIfAborted();
 
-    setStatus('Читам QR код…', 'busy');
-    const url = await decodeQr(blob);
-    signal.throwIfAborted();
+    let url = input;
+    if (typeof input !== 'string') {
+      setStatus('Читам QR код…', 'busy');
+      url = await decodeQr(input);
+      signal.throwIfAborted();
+    }
 
     setStatus('Преузимам рачун…', 'busy');
     const res = await fetch(url, { signal }).catch(() => {
@@ -191,6 +200,11 @@ async function handleImage(source) {
 
 // ── Scan the visible tab (popup mode only) ────────────────────
 $('scan-tab').addEventListener('click', () => handleImage(async () => {
+  // A receipt page needs no scanning: its own address is the receipt link. (On a phone the QR code
+  // is far down the page, out of the picture.)
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => []);
+  if (tab?.url && isReceiptUrl(tab.url)) return tab.url;
+
   setStatus('Снимам картицу…', 'busy');
   try {
     const dataUrl = await chrome.tabs.captureVisibleTab({ format: 'png' });
@@ -202,14 +216,17 @@ $('scan-tab').addEventListener('click', () => handleImage(async () => {
 
 // ── File picker ───────────────────────────────────────────────
 $('pick-file').addEventListener('click', () => {
-  if (IN_TAB) $('file').click();
+  if (IN_TAB || MOBILE) $('file').click();
   else chrome.tabs.create({ url: chrome.runtime.getURL('popup.html?tab') });
 });
-$('file').addEventListener('change', e => {
-  const file = e.target.files[0];
-  e.target.value = '';
-  if (file) handleImage(file);
-});
+$('take-photo').addEventListener('click', () => $('camera').click());
+for (const id of ['file', 'camera']) {
+  $(id).addEventListener('change', e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (file) handleImage(file);
+  });
+}
 
 // ── Paste ─────────────────────────────────────────────────────
 document.addEventListener('paste', e => {
@@ -219,6 +236,15 @@ document.addEventListener('paste', e => {
 });
 
 // ── Drag and drop (tab mode only) ─────────────────────────────
+// Phones (Firefox for Android): the popup is a full-screen page, so the camera and the photo
+// picker open straight from it.
+if (MOBILE) {
+  document.body.classList.add('mobile');
+  $('take-photo').classList.remove('hidden');
+  $('scan-tab').before($('take-photo')); // the camera comes first on a phone
+  $('scan-tab').className = 'secondary';
+}
+
 // "Scan this tab" needs the popup (the full-tab page has no tab behind it) and a browser that can
 // take the picture.
 if (IN_TAB || !chrome.tabs?.captureVisibleTab) $('scan-tab').classList.add('hidden');

@@ -31,6 +31,7 @@
         runtime: { getURL: path => '/' + path },
         tabs: {
           create: async ({ url }) => { window.__opened.push(url); },
+          query: async () => [{ url: location.href }],
           captureVisibleTab: async () => qrDataUrl,
         },
       };

@@ -38,6 +38,11 @@ body {
   background: var(--bg);
 }
 body.in-tab { width: auto; max-width: 460px; margin: 48px auto; }
+/* Firefox for Android opens the popup as a full-screen page: use the whole width. */
+body.mobile, body.mobile.in-tab { width: auto; max-width: 460px; margin: 0 auto; padding: 20px 16px; }
+body.mobile .paper { font-size: clamp(10px, 2.9vw, 14px); }
+body.mobile #drop { display: none; }  /* paste and drag-and-drop are desktop gestures */
+body.mobile button { padding: 14px 12px; font-size: 16px; }
 
 .hidden { display: none !important; }
 
