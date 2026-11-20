@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- Chrome Web Store screenshots, 1280×800: store/shot.html?n=1|2|3
+       Rendered to store/screenshots/*.png by scripts/screenshots.sh (needs the project served over http).
+       The extension shown is the real popup.html in test/harness.html, with the made-up receipt from test/fixture.js. -->
+  <style>
+    html, body { margin: 0; width: 1280px; height: 800px; overflow: hidden; }
+    body {
+      display: flex; align-items: center; gap: 64px; padding: 0 80px; box-sizing: border-box;
+      background: linear-gradient(135deg, #1e40af 0%, #1a73e8 55%, #3b82f6 100%);
+      color: #fff; font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    }
+    .text { flex: 1 1 0; min-width: 0; }
+    .brand { display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 600; margin-bottom: 30px; }
+    .brand img { width: 44px; height: 44px; border-radius: 10px; }
+    h1 { margin: 0 0 20px; font-size: 46px; line-height: 1.12; font-weight: 700; letter-spacing: -.015em; }
+    p { margin: 0; font-size: 23px; line-height: 1.4; opacity: .95; }
+    .window { flex: none; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 20px 50px rgba(0, 0, 0, .35); }
+    .window iframe { display: block; border: 0; }
+    .event { width: 520px; padding: 26px 28px; box-sizing: border-box; color: #1f2937; }
+    .event h2 { margin: 0 0 6px; font-size: 24px; }
+    .event .when { color: #5f6b76; font-size: 16px; margin-bottom: 4px; }
+    .event pre { margin: 16px 0 0; font: 15px/1.5 "Segoe UI", system-ui, sans-serif; white-space: pre-wrap; word-break: break-word; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="text">
+    <div class="brand"><img src="../icons/icon128.png" alt="">Fiskalnik</div>
+    <h1 id="headline"></h1>
+    <p id="caption"></p>
+  </div>
+
+  <div class="window" id="frame-window" hidden><iframe id="frame"></iframe></div>
+  <div class="window event" id="event" hidden>
+    <h2 id="event-title"></h2>
+    <div class="when" id="event-when"></div>
+    <div class="when" id="event-where"></div>
+    <pre id="event-details"></pre>
+  </div>
+
+  <script src="../test/fixture.js"></script>
+  <script src="../src/parser.js"></script>
+  <script src="../src/calendar-url.js"></script>
+  <script>
+    const SHOTS = {
+      1: { headline: 'Scan the QR code of a fiscal receipt',
+           caption: 'From the tab you are looking at, a pasted screenshot or an image file.',
+           frame: ['../test/harness.html', 340, 250] },
+      2: { headline: 'See the receipt before you add it',
+           caption: 'Fiskalnik reads it from the tax portal and shows it just as it was printed.',
+           frame: ['../test/harness.html?tab&scan', 470, 720] },
+      3: { headline: 'A calendar event, already filled in',
+           caption: 'Merchant, total, date and time, items and VAT. Google Calendar opens, you press Save.' },
+    };
+    const shot = SHOTS[new URLSearchParams(location.search).get('n')] || SHOTS[1];
+    document.getElementById('headline').textContent = shot.headline;
+    document.getElementById('caption').textContent = shot.caption;
+
+    if (shot.frame) {
+      const [src, width, height] = shot.frame;
+      const frame = document.getElementById('frame');
+      frame.width = width; frame.height = height; frame.src = src;
+      document.getElementById('frame-window').hidden = false;
+    } else {
+      // what "Add to calendar" hands to Google Calendar, read back from the real link
+      const receipt = parseReceiptHtml(FIXTURE.receiptPageHtml(''), FIXTURE.receiptUrl);
+      const event = new URL(buildCalendarUrl(receipt)).searchParams;
+      const lines = event.get('details').split('\n').filter(line => !line.startsWith('🔗'));
+      document.getElementById('event-title').textContent = event.get('text');
+      document.getElementById('event-when').textContent = '15 October 2026 · 10:15 – 10:30';
+      document.getElementById('event-where').textContent = event.get('location');
+      document.getElementById('event-details').textContent = lines.join('\n');
+      document.getElementById('event').hidden = false;
+    }
+  </script>
+</body>
+</html>

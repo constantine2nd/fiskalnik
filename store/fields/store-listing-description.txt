@@ -1,0 +1,51 @@
+Фискални рачун у Google календару, једним кликом. / Add Serbian fiscal receipts to Google Calendar in one click.
+
+СРПСКИ
+
+Сваки фискални рачун има QR код који води на рачун на порталу Пореске управе (suf.purs.gov.rs). Fiskalnik тај рачун претвара у догађај у вашем Google календару: у време када сте платили, са називом продавца, артиклима, износом и ПДВ-ом.
+
+КАКО РАДИ
+1. Отворите рачун на suf.purs.gov.rs и кликните „Додај у календар“, или кликните иконицу додатка и скенирајте QR код рачуна.
+2. Проверите рачун: приказан је онако како је одштампан.
+3. Отвара се Google календар са попуњеним догађајем. Изаберите календар и притисните „Сачувај“.
+
+МОГУЋНОСТИ
+• Дугме „Додај у календар“ на страници рачуна
+• Скенирање QR кода са картице коју гледате (е-рачун у мејлу, PDF, фотографија)
+• Налепите снимак екрана или изаберите слику (PNG, JPEG, WebP)
+• Догађај садржи продавца, адресу, ПИБ, број рачуна, артикле, укупан износ, ПДВ, начин плаћања и линк ка рачуну
+• Рефундације су означене и имају негативан износ
+
+ПРИВАТНОСТ
+• Без налога, без сервера, без праћења, без реклама
+• Додатак ништа не чува и ништа не шаље аутору
+• Рачун се чита са портала Пореске управе и предаје Google календару у вашем прегледачу, тек када кликнете
+• Отворен код (MIT): https://github.com/constantine2nd/chrome-fiskalnik
+
+ENGLISH
+
+Every Serbian fiscal receipt has a QR code that leads to the receipt on the Tax Administration's portal (suf.purs.gov.rs). Fiskalnik turns that receipt into an event in your Google Calendar: at the time you paid, with the merchant, the items, the total and VAT.
+
+HOW IT WORKS
+1. Open a receipt on suf.purs.gov.rs and click "Додај у календар" (Add to calendar), or click the toolbar icon and scan the receipt's QR code.
+2. Check the receipt: it is shown as it was printed.
+3. Google Calendar opens with the event filled in. Pick the calendar and press Save.
+
+FEATURES
+• "Add to calendar" button on the receipt page
+• Scan a QR code from the tab you are looking at (an e-receipt in an email, a PDF, a photo)
+• Paste a screenshot or choose an image (PNG, JPEG, WebP)
+• The event has the merchant, address, tax number, receipt number, items, total, VAT, payment method and the receipt link
+• Refunds are marked and carry a negative amount
+
+PRIVATE BY DESIGN
+• No account, no server, no tracking, no ads
+• The extension stores nothing and sends nothing to the developer
+• The receipt is read from the tax portal and handed to Google Calendar in your own browser, only when you click
+• Open source (MIT): https://github.com/constantine2nd/chrome-fiskalnik
+
+NOTES
+• The interface is in Serbian.
+• You save the event yourself in Google Calendar; the extension does not access your calendar or your Google account.
+
+Fiskalnik is not affiliated with, endorsed or sponsored by the Tax Administration of the Republic of Serbia or Google LLC. Google Calendar is a trademark of Google LLC.

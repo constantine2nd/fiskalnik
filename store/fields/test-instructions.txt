@@ -1,0 +1,5 @@
+No sign-in is needed to try the extension (a Google account is needed only to save the final calendar event).
+1. Open this real fiscal receipt on the Serbian Tax Administration's portal: <PASTE A RECEIPT LINK, https://suf.purs.gov.rs/v/?vl=...>
+2. Click "Додај у календар" (Add to calendar) in the top-right corner. Google Calendar's new-event form opens, filled in with the receipt.
+3. QR scan: the receipt page shows the receipt's QR code. With that page open, click the toolbar icon, then "Скенирај QR на овој картици" (Scan the QR on this tab). The receipt appears in the popup; "Додај у календар" opens the same event form.
+The interface is in Serbian because the receipts and their users are Serbian.

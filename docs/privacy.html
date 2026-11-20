@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy policy – Fiskalnik</title>
+  <link rel="icon" href="icon128.png">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <main>
+    <p><a href="./">← Fiskalnik</a></p>
+    <h1>Privacy policy</h1>
+    <p class="muted">Fiskalnik (Chrome extension) · Last updated: 20 November 2026</p>
+
+    <h2>In short</h2>
+    <p>The extension reads a Serbian fiscal receipt <b>only when you ask it to</b>, and opens a Google Calendar event
+       form filled in with that receipt, in your own browser. It <b>stores nothing</b> and sends nothing to the
+       developer. There are no accounts, no analytics and no ads.</p>
+
+    <h2>What the extension reads</h2>
+    <ul>
+      <li><b>A receipt page you have open.</b> On <code>suf.purs.gov.rs/v/…</code> it adds the “Додај у календар”
+          button. When you click it, the extension reads that page: merchant name, address and tax number, receipt
+          number, date and time, cashier, items, totals, VAT and payment method.</li>
+      <li><b>An image you give it.</b> When you click “Скенирај QR на овој картици”, it takes one picture of the tab
+          you are looking at. You can also paste, choose or drop an image. The picture is searched for a QR code
+          inside your browser and then discarded; it is not saved and not sent anywhere.</li>
+    </ul>
+    <p>It does not read other pages, your browsing history, your calendar or your Google account, and it does nothing
+       until you click one of its buttons.</p>
+
+    <h2>What it stores</h2>
+    <p>Nothing. The extension has no storage of its own and keeps no history of receipts. Once the popup or the tab is
+       closed, the receipt is gone from the extension.</p>
+
+    <h2>What it sends, and to whom</h2>
+    <ul>
+      <li><b>To the Tax Administration's portal</b> (<code>suf.purs.gov.rs</code>): when a QR code contains a receipt
+          link, the extension downloads that receipt page, just as if you opened the link yourself.</li>
+      <li><b>To Google Calendar</b> (<code>calendar.google.com</code>): when you click “Додај у календар”, a new tab
+          opens Google Calendar's “new event” form. The receipt details (the list above, and the receipt link) are
+          part of that link, so Google receives them in that request. The event is saved only if you press Save, in
+          the Google account you are signed in to, and is then covered by Google's privacy policy.</li>
+    </ul>
+    <p>No data is sent to the developer or to any other server, and there is no analytics or tracking code.
+       QR codes that are not links to <code>suf.purs.gov.rs</code> are ignored.</p>
+
+    <h2>Sharing and use</h2>
+    <ul>
+      <li>The data is not sold, shared with or transferred to third parties, other than being handed to Google
+          Calendar at your request, as described above.</li>
+      <li>It is used only to create your calendar event, not for any other purpose.</li>
+      <li>It is not used to determine creditworthiness or for lending purposes.</li>
+    </ul>
+
+    <h2>Permissions</h2>
+    <ul>
+      <li><b>activeTab</b>: to take one picture of the current tab when you click “Скенирај QR на овој картици”.</li>
+      <li><b>suf.purs.gov.rs</b>: to show the “Додај у календар” button on receipt pages and to download the receipt
+          a scanned QR code points to.</li>
+    </ul>
+
+    <h2>Contact</h2>
+    <p>Questions or problems: open an issue at
+       <a href="https://github.com/constantine2nd/chrome-fiskalnik/issues">github.com/constantine2nd/chrome-fiskalnik</a>.
+       The source code is public there (MIT license).</p>
+
+    <p class="muted">Fiskalnik is not affiliated with, endorsed or sponsored by the Tax Administration of the Republic
+       of Serbia or Google LLC. Google Calendar is a trademark of Google LLC.</p>
+  </main>
+</body>
+</html>

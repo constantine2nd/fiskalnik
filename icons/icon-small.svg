@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#1a73e8"/>
+  <path d="M104 32 H408 Q424 32 424 48 V488 L396.0 452 L368.0 488 L340.0 452 L312.0 488 L284.0 452 L256.0 488 L228.0 452 L200.0 488 L172.0 452 L144.0 488 L116.0 452 L88.0 488 V48 Q88 32 104 32 Z" fill="#f4f7f8"/>
+  <rect x="176" y="72" width="160" height="40" rx="20.0" fill="#2b2f33" opacity="0.85"/>
+  <rect x="136" y="144" width="104" height="36" rx="18.0" fill="#2b2f33" opacity="0.85"/><rect x="296" y="144" width="80" height="36" rx="18.0" fill="#2b2f33" opacity="0.85"/>
+  <rect x="349.3" y="429.3" width="27.1" height="27.1" fill="#2b2f33"/>
+  <rect x="136" y="224" width="100" height="100" rx="10" fill="#2b2f33"/><rect x="168.0" y="256.0" width="36" height="36" fill="#f4f7f8"/><rect x="276" y="224" width="100" height="100" rx="10" fill="#2b2f33"/><rect x="308.0" y="256.0" width="36" height="36" fill="#f4f7f8"/><rect x="136" y="364" width="100" height="100" rx="10" fill="#2b2f33"/><rect x="168.0" y="396.0" width="36" height="36" fill="#f4f7f8"/><rect x="296" y="384" width="60" height="60" rx="8" fill="#2b2f33"/>
+</svg>

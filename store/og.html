@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- Link-preview card (Open Graph), 1200×627, shown when the landing page is shared.
+       Rendered to docs/og-image.png by scripts/screenshots.sh -->
+  <style>
+    html, body { margin: 0; width: 1200px; height: 627px; overflow: hidden; }
+    body {
+      display: flex; align-items: center; gap: 48px; padding: 0 0 0 72px; box-sizing: border-box;
+      background: linear-gradient(135deg, #1e40af 0%, #1a73e8 55%, #3b82f6 100%);
+      color: #fff; font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    }
+    .text { flex: 1 1 0; min-width: 0; }
+    .brand { display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 600; opacity: .95; margin-bottom: 34px; }
+    .brand img { width: 44px; height: 44px; border-radius: 10px; }
+    h1 { margin: 0 0 22px; font-size: 52px; line-height: 1.1; font-weight: 700; letter-spacing: -.015em; }
+    p { margin: 0; font-size: 25px; line-height: 1.38; opacity: .95; }
+    .pill { display: inline-block; margin-top: 30px; padding: 8px 18px; border-radius: 22px; background: rgba(255, 255, 255, .18); font-size: 19px; font-weight: 600; }
+    .receipt {
+      flex: none; width: 430px; height: 560px; align-self: flex-end; margin-right: 56px;
+      border-radius: 12px 12px 0 0; overflow: hidden; background: #fff; box-shadow: 0 18px 44px rgba(0, 0, 0, .3);
+    }
+    /* the popup window in the 1280×800 screenshot 2 is 470 px wide, at x≈730, y≈40 */
+    .receipt img { display: block; width: 1171px; margin: -37px 0 0 -668px; }  /* 91.5 % of 1280 */
+  </style>
+</head>
+<body>
+  <div class="text">
+    <div class="brand"><img src="../icons/icon128.png" alt="">Fiskalnik</div>
+    <h1>Every receipt, on the day you paid it.</h1>
+    <p>Scan the QR code of a Serbian fiscal receipt and it becomes a Google Calendar event.</p>
+    <span class="pill">Free · no account, no server</span>
+  </div>
+  <div class="receipt" aria-hidden="true"><img src="screenshots/2-receipt.png" alt=""></div>
+</body>
+</html>

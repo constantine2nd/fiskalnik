@@ -1,0 +1,1 @@
+Add a Serbian fiscal receipt to Google Calendar, from the receipt page or from its QR code.

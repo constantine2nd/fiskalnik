@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fiskalnik test harness</title>
+</head>
+<body>
+  <!--
+    Loads the real popup.html with stand-ins for the chrome.* calls and for the tax portal, using the made-up
+    receipt from test/fixture.js and its QR code test/sample-qr.png.
+    Serve the project folder:  python3 -m http.server 8766
+    Open:  http://127.0.0.1:8766/test/harness.html            the toolbar popup, as it opens
+           http://127.0.0.1:8766/test/harness.html?scan       popup after "scan this tab" (the sample receipt)
+           http://127.0.0.1:8766/test/harness.html?tab        the full-tab page (file picker, drag and drop)
+           http://127.0.0.1:8766/test/harness.html?tab&scan   full-tab page with the sample receipt shown
+    "Add to calendar" does not open a tab here; the links it would open are collected in window.__opened.
+  -->
+  <script src="fixture.js"></script>
+  <script>
+    (async () => {
+      const blobToDataUrl = blob => new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+      const qrDataUrl = await blobToDataUrl(await (await fetch('sample-qr.png')).blob());
+
+      // chrome.* stand-ins: the "visible tab" is the sample QR image
+      window.__opened = [];
+      window.chrome = {
+        runtime: { getURL: path => '/' + path },
+        tabs: {
+          create: async ({ url }) => { window.__opened.push(url); },
+          captureVisibleTab: async () => qrDataUrl,
+        },
+      };
+
+      // the tax portal stand-in: the sample receipt link answers with the fixture page
+      const realFetch = window.fetch.bind(window);
+      window.fetch = (url, options) => String(url) === FIXTURE.receiptUrl
+        ? Promise.resolve(new Response(FIXTURE.receiptPageHtml(qrDataUrl), { headers: { 'Content-Type': 'text/html; charset=utf-8' } }))
+        : realFetch(url, options);
+
+      // ?scan: press "scan this tab" once the popup's scripts have run
+      window.__harnessReady = () => {
+        if (new URLSearchParams(location.search).has('scan')) document.getElementById('scan-tab').click();
+      };
+
+      // write the real popup.html into this document; everything resolves from the project root
+      const html = await (await realFetch('../popup.html')).text();
+      document.open();
+      document.write(html.replace('<head>', '<head><base href="../">') + '<script>__harnessReady()<\/script>');
+      document.close();
+    })();
+  </script>
+</body>
+</html>

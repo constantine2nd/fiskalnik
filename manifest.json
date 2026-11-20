@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "Fiskalnik",
+  "version": "1.0.0",
+  "description": "Adds Serbian fiscal receipts (suf.purs.gov.rs) to Google Calendar — from the receipt page or by scanning its QR code.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Fiskalnik — рачун у календар",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "permissions": ["activeTab"],
+  "host_permissions": ["https://suf.purs.gov.rs/*"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "web_accessible_resources": [
+    { "resources": ["icons/icon48.png"], "matches": ["https://suf.purs.gov.rs/*"] }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://suf.purs.gov.rs/v/*"],
+      "css": ["src/content.css"],
+      "js": ["src/parser.js", "src/calendar-url.js", "src/content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

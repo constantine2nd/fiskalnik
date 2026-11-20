@@ -1,0 +1,28 @@
+/* Floating "Add to Calendar" button on suf.purs.gov.rs receipt pages.
+   Everything is scoped to #fiskalnik-btn and reset first, so the portal's own CSS can't bleed in. */
+#fiskalnik-btn {
+  all: initial;
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 2147483647;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px 10px 12px;
+  font: 600 14px/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #fff;
+  background: #1a73e8;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .25), 0 6px 16px rgba(26, 115, 232, .3);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color .12s, box-shadow .12s, transform .12s;
+}
+#fiskalnik-btn:hover { background: #1765cc; transform: translateY(-1px); }
+#fiskalnik-btn:active { transform: translateY(0); }
+#fiskalnik-btn:focus-visible { outline: 3px solid #8ab4f8; outline-offset: 2px; }
+#fiskalnik-btn img { all: initial; width: 22px; height: 22px; border-radius: 5px; }
+#fiskalnik-btn.done { background: #188038; box-shadow: 0 2px 6px rgba(0, 0, 0, .25); }
+#fiskalnik-btn.error { background: #c5221f; box-shadow: 0 2px 6px rgba(0, 0, 0, .25); }
+@media print { #fiskalnik-btn { display: none; } }

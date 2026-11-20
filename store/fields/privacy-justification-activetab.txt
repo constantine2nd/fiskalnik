@@ -1,0 +1,1 @@
+Used only when the user clicks "Скенирај QR на овој картици" (Scan the QR on this tab) in the popup: takes one picture of the current tab to find a fiscal receipt QR code in it. The picture is decoded inside the extension and discarded; it is not stored or sent anywhere.
