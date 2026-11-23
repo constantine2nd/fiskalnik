@@ -7,6 +7,8 @@ popup. A prefilled Google Calendar event opens; you press **Save**.
 No account, no server: the extension reads the receipt from the tax portal and hands it to the calendar tab you are
 signed in to.
 
+Demo video (53 seconds, in Serbian): https://youtu.be/oKifpZnskIk
+
 ## Install (developer mode)
 
 **Chrome**

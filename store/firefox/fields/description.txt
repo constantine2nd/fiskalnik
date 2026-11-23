@@ -4,6 +4,8 @@
 
 Сваки фискални рачун има QR код који води на рачун на порталу Пореске управе (suf.purs.gov.rs). Fiskalnik тај рачун претвара у догађај у вашем Google календару: у време када сте платили, са називом продавца, артиклима, износом и ПДВ-ом.
 
+Видео (53 секунде): https://youtu.be/oKifpZnskIk
+
 КАКО РАДИ
 1. Отворите рачун на suf.purs.gov.rs и кликните „Додај у календар“, или кликните иконицу додатка и скенирајте QR код рачуна.
 2. Проверите рачун: приказан је онако како је одштампан.
@@ -25,6 +27,8 @@
 ENGLISH
 
 Every Serbian fiscal receipt has a QR code that leads to the receipt on the Tax Administration's portal (suf.purs.gov.rs). Fiskalnik turns that receipt into an event in your Google Calendar: at the time you paid, with the merchant, the items, the total and VAT.
+
+Video (53 seconds, in Serbian): https://youtu.be/oKifpZnskIk
 
 HOW IT WORKS
 1. Open a receipt on suf.purs.gov.rs and click "Додај у календар" (Add to calendar), or click the toolbar icon and scan the receipt's QR code.

@@ -18,7 +18,7 @@ text are listed here. One listing covers Firefox for desktop and Firefox for And
 |---|---|
 | Name | Fiskalnik (from the manifest) |
 | Summary (max 250) | [`fields/summary.txt`](fields/summary.txt) |
-| Description | [`fields/description.txt`](fields/description.txt) (Serbian, then English; the same text as the Chrome listing) |
+| Description | [`fields/description.txt`](fields/description.txt) (Serbian, then English; the same text as the Chrome listing, plus the two lines with the video link: the Chrome listing has its own video field) |
 | Categories | Firefox: *Other* (or *Shopping*); Android: *Other* |
 | Support website | [`fields/support-url.txt`](fields/support-url.txt) |
 | Homepage | [`fields/homepage-url.txt`](fields/homepage-url.txt) |
