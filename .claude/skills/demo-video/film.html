@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="fonts.css">
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; }
+  body { background: linear-gradient(135deg, #1e40af 0%, #1a73e8 55%, #3b82f6 100%); color: #fff;
+         font-family: Roboto, sans-serif; position: relative; }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .abs { position: absolute; }
+
+  /* left text column of the "how" scenes */
+  .col { position: absolute; left: 96px; top: 250px; width: 500px; }
+  .brand { position: absolute; left: 96px; top: 84px; display: flex; align-items: center; gap: 16px; font-size: 32px; font-weight: 500; }
+  .brand img { width: 60px; height: 60px; border-radius: 14px; }
+  .chip { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%;
+          background: #fff; color: #1a56c4; font-size: 34px; font-weight: 700; margin-bottom: 30px; }
+  .col h2 { margin: 0 0 26px; font-size: 62px; line-height: 1.1; font-weight: 700; letter-spacing: -.01em; }
+  .col p { margin: 0; font-size: 32px; line-height: 1.4; opacity: .95; }
+  .col p b { font-weight: 500; background: rgba(255,255,255,.18); padding: 2px 10px; border-radius: 8px; white-space: nowrap; }
+
+  .window { position: absolute; background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 30px 70px rgba(0,0,0,.38); color: #1f2937; }
+  .bar { height: 56px; background: #e9edf3; display: flex; align-items: center; gap: 10px; padding: 0 20px; box-sizing: border-box; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; background: #c5ccd6; }
+  .url { flex: 1; margin-left: 14px; height: 34px; border-radius: 17px; background: #fff; color: #5f6b76; font-size: 18px;
+         display: flex; align-items: center; padding: 0 18px; white-space: nowrap; overflow: hidden; }
+  .ext { width: 34px; height: 34px; border-radius: 8px; }
+
+  .paper { margin: 0; background: #f4f6f4; color: #1f2937; font: 15px/1.32 "Roboto Mono", monospace; padding: 22px 20px;
+           border-radius: 6px; box-shadow: 0 14px 40px rgba(0,0,0,.35); white-space: pre; width: max-content; text-align: left; }
+  .paper img { display: block; margin: 6px auto; width: 250px; image-rendering: pixelated; }
+  .paper .blur { filter: blur(5px); display: inline-block; }
+
+  .event { position: absolute; width: 640px; background: #fff; color: #1f2937; border-radius: 18px; box-shadow: 0 30px 80px rgba(0,0,0,.45);
+           padding: 30px 34px 34px; box-sizing: border-box; }
+  .event .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; color: #5f6b76; font-size: 20px; }
+  .event .save { background: #1a73e8; color: #fff; font-weight: 500; font-size: 20px; padding: 10px 26px; border-radius: 22px; }
+  .event h3 { margin: 0 0 16px; font-size: 31px; line-height: 1.2; font-weight: 500; border-bottom: 2px solid #1a73e8; padding-bottom: 12px; }
+  .event .row { font-size: 22px; line-height: 1.55; display: flex; gap: 14px; }
+  .event .row span:first-child { width: 30px; flex: none; text-align: center; }
+  .event .sep { height: 1px; background: #e3e7ee; margin: 14px 0; }
+
+  .cursor { position: absolute; left: 0; top: 0; width: 44px; height: 44px; z-index: 50; opacity: 0; }
+  .ripple { position: absolute; left: 0; top: 0; width: 90px; height: 90px; margin: -45px 0 0 -45px; border-radius: 50%;
+            background: rgba(255,255,255,.55); box-shadow: 0 0 0 3px rgba(26,115,232,.8); opacity: 0; z-index: 49; }
+
+  /* scene 1 */
+  #s1 h1 { position: absolute; left: 110px; top: 300px; width: 900px; margin: 0; font-size: 84px; line-height: 1.12; font-weight: 700; letter-spacing: -.015em; }
+  #s1 .sub { position: absolute; left: 110px; top: 720px; font-size: 46px; font-weight: 500; }
+  /* scene 2 and closing */
+  .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .center img.logo { width: 190px; height: 190px; border-radius: 42px; box-shadow: 0 24px 60px rgba(0,0,0,.35); }
+  .center .name { font-size: 110px; font-weight: 700; margin-top: 34px; letter-spacing: -.02em; }
+  .center .tag { font-size: 50px; margin-top: 14px; opacity: .97; }
+  .center .big { font-size: 96px; font-weight: 700; line-height: 1.15; letter-spacing: -.015em; }
+  .center .small { font-size: 40px; margin-top: 30px; opacity: .95; }
+  .center .link { font-size: 32px; margin-top: 46px; background: rgba(255,255,255,.16); padding: 12px 30px; border-radius: 30px; }
+
+  /* e-mail mock */
+  .mail { padding: 34px 48px; font-size: 22px; color: #1f2937; }
+  .mail .subj { font-size: 34px; font-weight: 500; margin-bottom: 18px; }
+  .mail .from { display: flex; align-items: center; gap: 16px; color: #5f6b76; margin-bottom: 26px; }
+  .mail .av { width: 52px; height: 52px; border-radius: 50%; background: #c7d7f5; color: #1a56c4; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 24px; }
+  .mail img { width: 300px; image-rendering: pixelated; display: block; margin-top: 22px; }
+
+  /* phone */
+  .phone { position: absolute; width: 380px; height: 707px; border: 16px solid #0f172a; border-radius: 52px; overflow: hidden; background: #fff;
+           box-shadow: 0 30px 70px rgba(0,0,0,.45); }
+  .phone > * { position: absolute; left: 0; top: 0; }
+  .cam { width: 380px; height: 707px; background: #23262b; overflow: hidden; }
+  .flash { width: 380px; height: 707px; background: #fff; opacity: 0; }
+  .dotfinger { position: absolute; width: 70px; height: 70px; margin: -35px 0 0 -35px; border-radius: 50%; background: rgba(26,115,232,.35);
+               border: 3px solid rgba(26,115,232,.9); box-sizing: border-box; opacity: 0; z-index: 40; }
+
+  /* week */
+  .week { position: absolute; left: 260px; top: 150px; width: 1400px; height: 640px; background: #fff; border-radius: 18px; color: #1f2937;
+          box-shadow: 0 30px 70px rgba(0,0,0,.38); overflow: hidden; }
+  .week .head { display: grid; grid-template-columns: repeat(7, 1fr); height: 84px; border-bottom: 1px solid #e3e7ee; }
+  .week .head div { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 18px; color: #5f6b76; }
+  .week .head b { font-size: 28px; color: #1f2937; font-weight: 500; }
+  .week .grid { position: relative; height: 556px; background:
+      repeating-linear-gradient(to right, transparent 0 199px, #e3e7ee 199px 200px),
+      repeating-linear-gradient(to bottom, transparent 0 91px, #eef1f5 91px 92px); }
+  .ev { position: absolute; width: 184px; margin-left: 8px; border-radius: 10px; background: #1a73e8; color: #fff; padding: 10px 12px; box-sizing: border-box;
+        font-size: 17px; line-height: 1.3; opacity: 0; }
+  .ev b { display: block; font-weight: 500; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ev.main { background: #0b57d0; box-shadow: 0 0 0 4px rgba(26,115,232,.3); }
+  #s6 .line { position: absolute; left: 0; right: 0; top: 850px; text-align: center; font-size: 54px; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<!-- 1 hook -->
+<div class="scene" id="s1">
+  <h1 id="s1h"></h1>
+  <div class="sub" id="s1a"></div>
+  <div class="sub" id="s1b" style="top: 790px; opacity: 0;"></div>
+  <div class="abs" id="p1" style="left: 1260px; top: 120px;"></div>
+  <div class="abs" id="p2" style="left: 1130px; top: 210px;"></div>
+  <div class="abs" id="p3" style="left: 1370px; top: 250px;"></div>
+</div>
+
+<!-- 2 title -->
+<div class="scene" id="s2">
+  <div class="center">
+    <img class="logo" id="s2logo" src="../icons/icon128.png" alt="">
+    <div class="name" id="s2name">Fiskalnik</div>
+    <div class="tag" id="s2tag">Фискални рачун → Google календар</div>
+    <div class="tag" id="s2one" style="font-weight: 700; margin-top: 40px;"></div>
+  </div>
+</div>
+
+<!-- 3 receipt page -->
+<div class="scene" id="s3">
+  <div class="brand"><img src="../icons/icon128.png" alt="">Fiskalnik</div>
+  <div class="col"><div class="chip">1</div><h2>Са странице рачуна</h2>
+    <p>Отворите рачун на порталу Пореске управе и кликните <b>Додај у календар</b></p></div>
+  <div class="window" style="left: 660px; top: 160px; width: 1180px; height: 756px;">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">🔒 suf.purs.gov.rs/v/?vl=…</span></div>
+    <img src="../assets/portal.png" style="width: 1180px; display: block;" alt="">
+  </div>
+  <div class="event" id="s3ev" style="left: 1150px; top: 260px;"></div>
+</div>
+
+<!-- 4 scan the tab -->
+<div class="scene" id="s4">
+  <div class="brand"><img src="../icons/icon128.png" alt="">Fiskalnik</div>
+  <div class="col"><div class="chip">2</div><h2>Са QR кода на екрану</h2>
+    <p>Отворите Фискалник и кликните <b>Скенирај QR на овој картици</b></p></div>
+  <div class="window" style="left: 660px; top: 160px; width: 1180px; height: 756px;">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">🔒 mail.example.com</span>
+      <img class="ext" src="../icons/icon48.png" alt=""></div>
+    <div class="mail">
+      <div class="subj">Ваш е-рачун</div>
+      <div class="from"><div class="av">Е</div><div><b style="color:#1f2937">Е-рачуни</b><br>за мене</div></div>
+      <div>Хвала на куповини.<br>Ваш фискални рачун можете проверити преко овог QR кода:</div>
+      <img id="mailqr" alt="">
+    </div>
+  </div>
+  <div class="window" id="pop" style="left: 1395px; top: 222px; width: 425px; height: 295px; border-radius: 12px;">
+    <img id="popA" src="../assets/popup-a.png" style="position:absolute; left:0; top:0; width: 425px;" alt="">
+    <img id="popB" src="../assets/popup-b.png" style="position:absolute; left:0; top:0; width: 425px; opacity: 0;" alt="">
+  </div>
+  <div class="event" id="s4ev" style="left: 700px; top: 330px; transform-origin: 0 0;"></div>
+</div>
+
+<!-- 5 phone -->
+<div class="scene" id="s5">
+  <div class="brand"><img src="../icons/icon128.png" alt="">Fiskalnik</div>
+  <div class="col"><div class="chip">3</div><h2>Са папирног рачуна</h2>
+    <p>На телефону, у Firefox-у: <b>Сликај рачун</b></p></div>
+  <div class="phone" style="left: 1040px; top: 150px;">
+    <img id="mobA" src="../assets/mobile-a.png" style="width: 380px;" alt="">
+    <div class="cam" id="cam"><div class="abs" id="camPaper" style="left: 52px; top: 60px; transform-origin: 0 0;"></div></div>
+    <div class="flash" id="flash"></div>
+    <img id="mobB" src="../assets/mobile-b.png" style="width: 380px; opacity: 0;" alt="">
+  </div>
+  <div class="dotfinger" id="finger" style="left: 1246px; top: 257px;"></div>
+</div>
+
+<!-- 6 payoff and closing -->
+<div class="scene" id="s6">
+  <div id="s6a">
+    <div class="week">
+      <div class="head"></div>
+      <div class="grid">
+        <div class="ev" data-col="0" style="left: 0; top: 60px;"><b>Пекара</b>320,00 RSD</div>
+        <div class="ev" data-col="1" style="left: 200px; top: 300px;"><b>Маркет</b>2.340,00 RSD</div>
+        <div class="ev" data-col="3" style="left: 600px; top: 150px;"><b>Апотека</b>1.150,00 RSD</div>
+        <div class="ev" data-col="4" style="left: 800px; top: 380px;"><b>Маркет</b>4.780,00 RSD</div>
+        <div class="ev" data-col="5" style="left: 1000px; top: 110px;"><b>Апотека</b>890,00 RSD</div>
+        <div class="ev" data-col="6" style="left: 1200px; top: 110px;"><b>Пекара</b>410,00 RSD</div>
+      </div>
+    </div>
+    <div class="line" id="s6line"></div>
+  </div>
+  <div class="center" id="s6b" style="opacity: 0;">
+    <div class="big" id="s6l1">Без налога.</div>
+    <div class="big" id="s6l2">Без сервера.</div>
+    <div style="display:flex; align-items:center; gap: 22px; margin-top: 60px;" id="s6l3">
+      <img src="../icons/icon128.png" style="width: 84px; height: 84px; border-radius: 20px;" alt="">
+      <span style="font-size: 60px; font-weight: 700;">Fiskalnik</span>
+    </div>
+    <div class="small" id="s6l4"></div>
+  </div>
+</div>
+
+<svg class="cursor" id="cursor" viewBox="0 0 24 24"><path d="M5 2l14 11h-8l-3 8z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>
+<div class="ripple" id="ripple"></div>
+
+<script>
+// Scene starts in seconds, from timing.json (build.sh derives it from the narration's lengths).
+let S, T, EVENT, TEXTS;
+const EASE = 'cubic-bezier(.2,.7,.2,1)';
+const $ = id => document.getElementById(id);
+const anims = [];
+
+// One animation per element and property group: keys = [[time, {props}], ...] on the film's clock.
+function track(el, keys, ease = EASE) {
+  const frames = [];
+  if (keys[0][0] > 0) frames.push({ ...keys[0][1], offset: 0 });
+  for (const [t, props] of keys) frames.push({ ...props, offset: Math.min(1, t / T), easing: ease });
+  const last = keys[keys.length - 1];
+  if (last[0] < T) frames.push({ ...last[1], offset: 1 });
+  const a = el.animate(frames, { duration: T * 1000, fill: 'both' });
+  a.pause(); anims.push(a);
+}
+const fade = (el, t0, t1, d = .5) => track(el, [[t0, { opacity: 0 }], [t0 + d, { opacity: 1 }], [t1 - d, { opacity: 1 }], [t1, { opacity: 0 }]], 'linear');
+const appear = (el, t, d = .5, dy = 30) => {
+  track(el, [[t, { opacity: 0 }], [t + d, { opacity: 1 }]], 'linear');
+  track(el, [[t, { transform: `translateY(${dy}px)` }], [t + d, { transform: 'translateY(0)' }]]);
+};
+
+const MONTHS = ['јануар', 'фебруар', 'март', 'април', 'мај', 'јун', 'јул', 'август', 'септембар', 'октобар', 'новембар', 'децембар'];
+const DAYS = ['недеља', 'понедељак', 'уторак', 'среда', 'четвртак', 'петак', 'субота'];
+// "20261107T152222/20261107T153722" → parts of the receipt's wall-clock time
+function eventWhen() {
+  const [a, b] = EVENT.dates.split('/').map(d => /(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)/.exec(d).slice(1).map(Number));
+  const date = new Date(Date.UTC(a[0], a[1] - 1, a[2]));
+  const hm = p => `${p[3]}:${String(p[4]).padStart(2, '0')}`;
+  return { date, from: hm(a), to: hm(b), text: `${DAYS[date.getUTCDay()]}, ${a[2]}. ${MONTHS[a[1] - 1]} ${a[0]} · ${hm(a)} – ${hm(b)}` };
+}
+function row(icon, text) {
+  const r = document.createElement('div'); r.className = 'row';
+  const i = document.createElement('span'); i.textContent = icon;
+  const t = document.createElement('span'); t.textContent = text;
+  r.append(i, t); return r;
+}
+// Shown: title, time, place, up to three items, total, VAT, payment. Left out on purpose: the
+// cashier's name and the receipt link.
+function eventCard(el) {
+  el.innerHTML = '<div class="top"><span>Нови догађај</span><span class="save">Сачувај</span></div><h3></h3>';
+  el.querySelector('h3').textContent = EVENT.text;
+  el.append(row('🕐', eventWhen().text));
+  if (EVENT.location) el.append(row('📍', EVENT.location));
+  const sep = document.createElement('div'); sep.className = 'sep'; el.append(sep);
+  const lines = EVENT.details.split('\n');
+  const items = lines.filter(l => l.startsWith('• '));
+  for (const l of items.slice(0, 3)) el.append(row('🛒', l.slice(2)));
+  if (items.length > 3) el.append(row('', `… још ${items.length - 3}`));
+  for (const icon of ['💰', '🧾', '💳']) { const l = lines.find(l => l.startsWith(icon)); if (l) el.append(row(icon, l.slice(icon.length).trim())); }
+}
+
+// The closing week: the receipt's own week, its event on its own day, made-up neighbours elsewhere.
+function week() {
+  const { date, from } = eventWhen();
+  const col = (date.getUTCDay() + 6) % 7; // Monday first
+  const names = ['ПОН', 'УТО', 'СРЕ', 'ЧЕТ', 'ПЕТ', 'СУБ', 'НЕД'];
+  document.querySelector('.week .head').innerHTML = names.map((n, i) =>
+    `<div>${n}<b>${new Date(date.getTime() + (i - col) * 864e5).getUTCDate()}</b></div>`).join('');
+  const grid = document.querySelector('.week .grid');
+  for (const ev of [...grid.querySelectorAll('.ev')]) if (+ev.dataset.col === col) ev.remove();
+  const [merchant, total] = EVENT.text.split(' — ');
+  const main = document.createElement('div'); main.className = 'ev main';
+  main.style.left = col * 200 + 'px'; main.style.top = '250px';
+  const b = document.createElement('b'); b.textContent = merchant;
+  main.append(b, total || '', document.createElement('br'), from);
+  grid.append(main);
+}
+
+async function build() {
+  const json = async f => (await fetch(f)).json();
+  [S, EVENT, TEXTS] = await Promise.all([json('timing.json'), json('../assets/event.json'), json('texts.json')]);
+  T = S.end;
+  for (const [id, text] of Object.entries(TEXTS)) document.getElementById(id).textContent = text;
+  week();
+  // the journal, as printed, from the real receipt page (cashier's name blurred)
+  const html = await (await fetch('receipt.html')).text();
+  const pre = new DOMParser().parseFromString(html, 'text/html').querySelector('pre');
+  const qr = pre.querySelector('img').getAttribute('src');
+  function paper() {
+    const p = document.createElement('pre'); p.className = 'paper';
+    for (const n of pre.childNodes) {
+      if (n.nodeName === 'IMG') { const i = new Image(); i.src = qr; p.append(i); }
+      else if (n.nodeName === 'BR') p.append('\n');
+      else p.append(n.textContent);
+    }
+    p.innerHTML = p.innerHTML.replace(/(Касир:\s*)(\S.*)/, '$1<span class="blur">$2</span>');
+    return p;
+  }
+  for (const id of ['p1', 'p2', 'p3', 'camPaper']) $(id).append(paper());
+  $('mailqr').src = qr;
+  eventCard($('s3ev')); eventCard($('s4ev'));
+  await Promise.all([...document.images].map(i => i.decode().catch(() => {})));
+  await document.fonts.ready;
+
+  // scene visibility
+  for (const [id, a, b] of [['s1', S.s1, S.s2], ['s2', S.s2, S.s3], ['s3', S.s3, S.s4], ['s4', S.s4, S.s5], ['s5', S.s5, S.s6], ['s6', S.s6, S.end + 1]])
+    track($(id), [[Math.max(0, a - .01), { opacity: a === 0 ? 1 : 0 }], [a + .45, { opacity: 1 }], [b - .4, { opacity: 1 }], [b, { opacity: 0 }]], 'linear');
+
+  // ── 1 hook ──
+  appear($('s1h'), .2, .7);
+  appear($('s1a'), 4.2, .5);
+  appear($('s1b'), 6.0, .4);
+  const drift = (id, r0, r1, fall) => track($(id), [[0, { transform: `rotate(${r0}deg) translateY(40px) scale(.62)` }], [5.9, { transform: `rotate(${r1}deg) translateY(0) scale(.62)` }],
+    [7.6, { transform: `rotate(${r1 + fall}deg) translate(${fall * 12}px, 900px) scale(.62)` }]], 'ease-in-out');
+  for (const id of ['p1', 'p2', 'p3']) $(id).style.transformOrigin = '50% 30%';
+  drift('p1', 7, 10, 24); drift('p2', -9, -6, -30); drift('p3', 2, 4, 14);
+  for (const [id, t] of [['p1', .5], ['p2', .9], ['p3', 1.3]]) track($(id), [[t, { opacity: 0 }], [t + .6, { opacity: 1 }], [6.4, { opacity: 1 }], [7.5, { opacity: 0 }]], 'linear');
+
+  // ── 2 title ──
+  let t = S.s2;
+  track($('s2logo'), [[t + .1, { transform: 'scale(.6)', opacity: 0 }], [t + .7, { transform: 'scale(1)', opacity: 1 }]]);
+  appear($('s2name'), t + .4); appear($('s2tag'), t + .9); appear($('s2one'), t + 3.5, .4);
+
+  // ── 3 receipt page ──
+  t = S.s3;
+  const C3 = [1722, 246]; // the "Додај у календар" button on the page
+  track($('s3ev'), [[t + 6.0, { opacity: 0, transform: 'translateX(80px) scale(.94)' }], [t + 6.6, { opacity: 1, transform: 'translateX(0) scale(1)' }]]);
+  [...$('s3ev').querySelectorAll('h3, .row')].forEach((row, i) => track(row, [[t + 6.5 + i * .28, { opacity: 0 }], [t + 6.8 + i * .28, { opacity: 1 }]], 'linear'));
+
+  // ── 4 scan ──
+  t = S.s4;
+  const ICON = [1797, 188], SCAN = [1607, 332], ADD = [1607, 533];
+  track($('pop'), [[t + 1.5, { opacity: 0, transform: 'translateY(-14px)', height: '295px' }], [t + 1.8, { opacity: 1, transform: 'translateY(0)', height: '295px' }],
+    [t + 4.2, { opacity: 1, transform: 'translateY(0)', height: '295px' }], [t + 4.8, { opacity: 1, transform: 'translateY(0)', height: '660px' }]]);
+  track($('popB'), [[t + 4.2, { opacity: 0 }], [t + 4.6, { opacity: 1 }]], 'linear');
+  track($('s4ev'), [[t + 7.0, { opacity: 0, transform: 'translateX(-60px) scale(.9)' }], [t + 7.5, { opacity: 1, transform: 'translateX(0) scale(.96)' }]]);
+
+  // ── 5 phone ──
+  t = S.s5;
+  track($('finger'), [[t + 1.3, { opacity: 0, transform: 'scale(1.6)' }], [t + 1.6, { opacity: 1, transform: 'scale(1)' }], [t + 1.9, { opacity: 0, transform: 'scale(.7)' }]]);
+  track($('cam'), [[t + 1.9, { opacity: 0 }], [t + 2.2, { opacity: 1 }], [t + 3.7, { opacity: 1 }], [t + 3.9, { opacity: 0 }]], 'linear');
+  track($('camPaper'), [[t + 1.9, { transform: 'rotate(-5deg) scale(.5)' }], [t + 3.5, { transform: 'rotate(-1deg) scale(.6)' }]], 'ease-out');
+  track($('flash'), [[t + 3.4, { opacity: 0 }], [t + 3.5, { opacity: .95 }], [t + 3.9, { opacity: 0 }]], 'linear');
+  track($('mobB'), [[t + 3.7, { opacity: 0, transform: 'translateY(0)' }], [t + 3.9, { opacity: 1, transform: 'translateY(0)' }], [t + 4.6, { opacity: 1, transform: 'translateY(0)' }], [t + 6.4, { opacity: 1, transform: 'translateY(-250px)' }]], 'ease-in-out');
+
+  // ── 6 payoff, closing ──
+  t = S.s6;
+  [...document.querySelectorAll('#s6 .ev')].forEach((ev, i) => track(ev, [[t + .6 + i * .22, { opacity: 0, transform: 'scale(.8)' }], [t + .9 + i * .22, { opacity: 1, transform: 'scale(1)' }]]));
+  appear(document.querySelector('#s6 .line'), t + .8);
+  track($('s6a'), [[t + 5.3, { opacity: 1 }], [t + 5.8, { opacity: 0 }]], 'linear');
+  track($('s6b'), [[t + 5.7, { opacity: 0 }], [t + 6.1, { opacity: 1 }]], 'linear');
+  appear($('s6l1'), t + 5.9, .4); appear($('s6l2'), t + 7.0, .4); appear($('s6l3'), t + 8.2, .5); appear($('s6l4'), t + 8.9, .5);
+
+  // ── cursor: [time, x, y] waypoints, with clicks ──
+  const path = [
+    [S.s3 + 1.2, 1300, 760], [S.s3 + 4.3, ...C3], [S.s3 + 6.2, ...C3], [S.s3 + 7.0, 1500, 980],
+    [S.s4 + .3, 1250, 720], [S.s4 + 1.2, ...ICON], [S.s4 + 2.4, ...ICON], [S.s4 + 3.4, ...SCAN], [S.s4 + 5.6, ...SCAN], [S.s4 + 6.5, ...ADD], [S.s4 + 8.4, ...ADD],
+  ];
+  const clicks = [[S.s3 + 4.7, C3], [S.s4 + 1.4, ICON], [S.s4 + 3.8, SCAN], [S.s4 + 6.8, ADD]];
+  track($('cursor'), path.map(([time, x, y]) => [time, { transform: `translate(${x}px, ${y}px)` }]), 'cubic-bezier(.4,0,.2,1)');
+  track($('cursor'), [[S.s3 + 1.0, { opacity: 0 }], [S.s3 + 1.3, { opacity: 1 }], [S.s3 + 6.6, { opacity: 1 }], [S.s3 + 7.0, { opacity: 0 }],
+    [S.s4 + .3, { opacity: 0 }], [S.s4 + .6, { opacity: 1 }], [S.s4 + 8.2, { opacity: 1 }], [S.s4 + 8.6, { opacity: 0 }]], 'linear');
+  const rk = [];
+  for (const [time, [x, y]] of clicks) rk.push([time - .01, { opacity: 0, transform: `translate(${x}px, ${y}px) scale(.2)` }], [time, { opacity: .9, transform: `translate(${x}px, ${y}px) scale(.2)` }],
+    [time + .45, { opacity: 0, transform: `translate(${x}px, ${y}px) scale(1)` }]);
+  track($('ripple'), rk, 'ease-out');
+
+  window.seek = s => { for (const a of anims) a.currentTime = Math.min(s, T - .001) * 1000; };
+  window.DURATION = T;
+  seek(+new URLSearchParams(location.search).get('t') || 0);
+  window.ready = true;
+}
+build();
+</script>
+</body>
+</html>

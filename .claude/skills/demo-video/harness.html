@@ -1,0 +1,32 @@
+<!doctype html>
+<html><head><meta charset="utf-8"></head><body>
+<!-- The real popup.html with stand-ins for chrome.* and for the tax portal, like test/harness.html, but fed with the
+     receipt page that build.sh downloaded (receipt.html, receipt-url.txt). "Scan this tab" sees that receipt's QR code. -->
+<script>
+(async () => {
+  const pageHtml = await (await fetch('receipt.html')).text();
+  const receiptUrl = (await (await fetch('receipt-url.txt')).text()).trim();
+  const qrDataUrl = /<img[^>]+src=["']?(data:image[^"' >]+)/.exec(pageHtml)[1];
+  window.__opened = [];
+  window.chrome = {
+    runtime: { getURL: path => '/' + path },
+    tabs: {
+      create: async ({ url }) => { window.__opened.push(url); },
+      query: async () => [{ url: 'https://example.com/' }],
+      captureVisibleTab: async () => qrDataUrl,
+    },
+  };
+  const realFetch = window.fetch.bind(window);
+  window.fetch = (url, options) => String(url) === receiptUrl
+    ? Promise.resolve(new Response(pageHtml, { headers: { 'Content-Type': 'text/html; charset=utf-8' } }))
+    : realFetch(url, options);
+  window.__harnessReady = () => {
+    if (new URLSearchParams(location.search).has('scan')) document.getElementById('scan-tab').click();
+  };
+  const html = await (await realFetch('../popup.html')).text();
+  const extra = '<base href="../"><link rel="stylesheet" href="v/fonts.css"><style>body,button{font-family:Roboto,sans-serif!important}.paper{font-family:"Roboto Mono",monospace!important}</style>';
+  document.open();
+  document.write(html.replace('<head>', '<head>' + extra) + '<script>__harnessReady()<\/script>');
+  document.close();
+})();
+</script></body></html>
