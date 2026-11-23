@@ -37,7 +37,7 @@ What's prepared in this repo, and the steps only you can do (testing in Firefox,
        Firefox for Android.
 3. [x] Listing fields, privacy policy and reviewer notes: see `store/firefox/listing.md`.
 4. [x] Submit. The automatic check is immediate; a human review can follow later.
-5. [ ] After it is listed: add the link to `docs/index.html` and `README.md`.
+5. [x] After it is listed: add the link to `docs/index.html` and `README.md`.
 
 ## Later updates
 
