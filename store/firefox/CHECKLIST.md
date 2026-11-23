@@ -28,15 +28,15 @@ What's prepared in this repo, and the steps only you can do (testing in Firefox,
       3. the extension page (⋮ → Extensions → Fiskalnik): *Сликај рачун* (camera) and *Изабери слику…* (saved photo)
       4. *Скенирај QR на овој картици*: on a receipt page it uses the page's own link; elsewhere it takes a picture
          of the tab (it hides itself if Firefox can't)
-- [ ] **A receipt link for the reviewer** in `store/firefox/fields/notes-to-reviewer.txt`
+- [x] **A receipt link for the reviewer**: pasted into the store form from an untracked copy, so the link stays out of the repository
 
 ## On addons.mozilla.org
 
-1. [ ] Developer account: https://addons.mozilla.org/developers/ → sign in with a Mozilla account (free).
-2. [ ] **Submit a New Add-on** → *On this site* → upload `dist/fiskalnik-firefox-1.0.0.zip` → tick Firefox and
+1. [x] Developer account: https://addons.mozilla.org/developers/ → sign in with a Mozilla account (free).
+2. [x] **Submit a New Add-on** → *On this site* → upload `dist/fiskalnik-firefox-1.0.0.zip` → tick Firefox and
        Firefox for Android.
-3. [ ] Listing fields, privacy policy and reviewer notes: see `store/firefox/listing.md`.
-4. [ ] Submit. The automatic check is immediate; a human review can follow later.
+3. [x] Listing fields, privacy policy and reviewer notes: see `store/firefox/listing.md`.
+4. [x] Submit. The automatic check is immediate; a human review can follow later.
 5. [ ] After it is listed: add the link to `docs/index.html` and `README.md`.
 
 ## Later updates
