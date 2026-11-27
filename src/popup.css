@@ -102,6 +102,24 @@ kbd {
 #receipt { margin-top: 12px; }
 #receipt > button { margin: 0 0 10px; }
 
+/* ── Warranty ─────────────────────────────────────────── */
+.warranty { margin: 0 0 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.add-as { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
+.add-as-label { font-weight: 600; }
+.add-as label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.add-as input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.warranty-hint { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+#warranty-options { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+#warranty-options select, #warranty-options input {
+  padding: 8px 10px; font: inherit; color: var(--text); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 8px;
+}
+#warranty-options input { width: 7em; }
+#warranty-end, #warranty-error { flex-basis: 100%; margin: 0; font-size: 13px; }
+#warranty-error { color: var(--error); }
+body.mobile .add-as label { min-height: 44px; font-size: 16px; }
+body.mobile #warranty-options select, body.mobile #warranty-options input { min-height: 44px; font-size: 16px; }
+
 /* The fiscal journal, printed like the paper slip: fixed 40-column monospace on light
    paper in both themes. */
 .paper {

@@ -5,11 +5,11 @@ What it reads
 - An image you give it (a picture of the current tab when you click "Скенирај QR на овој картици", or an image you paste, choose or drop). It is searched for a QR code inside your browser and then discarded.
 
 What it stores
-Nothing. The extension has no storage of its own and keeps no history of receipts.
+Nothing. The extension has no storage of its own and keeps no history of receipts. The warranty period you choose is not saved either.
 
 What it sends, and to whom
 - To the Tax Administration's portal (suf.purs.gov.rs): when a QR code contains a receipt link, the extension downloads that receipt page, as if you opened the link yourself.
-- To Google Calendar (calendar.google.com): when you click "Додај у календар", a new tab opens Google Calendar's new-event form. The receipt details and the receipt link are part of that link, so Google receives them in that request. The event is saved only if you press Save, in the Google account you are signed in to.
+- To Google Calendar (calendar.google.com): when you click "Додај у календар", a new tab opens Google Calendar's new-event form. The receipt details and the receipt link are part of that link, so Google receives them in that request. If you chose "Гаранција", the form is instead an all-day event on the day the warranty ends, with the receipt number, date, items and link. The event is saved only if you press Save, in the Google account you are signed in to.
 No data is sent to the developer or to any other server.
 
 The data is not sold or shared with third parties other than as described above, and is used only to create your calendar event.
