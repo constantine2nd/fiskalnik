@@ -17,6 +17,7 @@
 • Налепите снимак екрана или изаберите слику (PNG, JPEG, WebP)
 • Догађај садржи продавца, адресу, ПИБ, број рачуна, артикле, укупан износ, ПДВ, начин плаћања и линк ка рачуну
 • Рефундације су означене и имају негативан износ
+• Гаранција: уместо куповине додајте целодневни догађај на дан истека гаранције (6, 12, 24, 36 месеци или друго)
 
 ПРИВАТНОСТ
 • Без налога, без сервера, без праћења, без реклама
@@ -41,6 +42,7 @@ FEATURES
 • Paste a screenshot or choose an image (PNG, JPEG, WebP)
 • The event has the merchant, address, tax number, receipt number, items, total, VAT, payment method and the receipt link
 • Refunds are marked and carry a negative amount
+• Warranty: instead of the purchase, add an all-day event on the day the warranty ends (6, 12, 24 or 36 months, or your own)
 
 PRIVATE BY DESIGN
 • No account, no server, no tracking, no ads
