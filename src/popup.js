@@ -80,17 +80,134 @@ function renderSummary(receipt) {
   return box;
 }
 
+const WARRANTY_OPTION_LABEL = { 6: '6 месеци', 12: '12 месеци', 24: '24 месеца', 36: '36 месеци' };
+
+// Warranty choice for a sale receipt: one period for the whole receipt, counted from its date.
+// Nothing is remembered: the state lives in this closure, so every receipt starts with it off.
+// months() → the chosen number of months, or null (off or invalid); while the custom value is
+// invalid, both calendar buttons are disabled.
+function renderWarranty(receipt, mainButton) {
+  const box = el('div', 'warranty');
+  box.id = 'warranty';
+
+  const toggle = el('label', 'warranty-toggle');
+  const on = el('input');
+  on.type = 'checkbox';
+  on.id = 'warranty-on';
+  toggle.append(on, 'Гаранција');
+
+  const options = el('div', 'hidden');
+  options.id = 'warranty-options';
+
+  const select = el('select');
+  select.id = 'warranty-months';
+  select.setAttribute('aria-label', 'Трајање гаранције');
+  for (const n of WARRANTY_PRESETS) {
+    const option = el('option', '', WARRANTY_OPTION_LABEL[n]);
+    option.value = String(n);
+    select.append(option);
+  }
+  const otherOption = el('option', '', 'Друго…');
+  otherOption.value = 'custom';
+  select.append(otherOption);
+  select.value = String(DEFAULT_WARRANTY_MONTHS);
+
+  const custom = el('input', 'hidden');
+  custom.type = 'number';
+  custom.id = 'warranty-custom';
+  custom.min = '1';
+  custom.max = String(MAX_WARRANTY_MONTHS);
+  custom.step = '1';
+  custom.inputMode = 'numeric';
+  custom.placeholder = 'месеци';
+  custom.setAttribute('aria-label', 'Број месеци');
+
+  const endText = el('p');
+  endText.id = 'warranty-end';
+  endText.setAttribute('aria-live', 'polite');
+
+  const error = el('p', 'hidden', `Унеси број месеци од 1 до ${MAX_WARRANTY_MONTHS}.`);
+  error.id = 'warranty-error';
+  error.setAttribute('role', 'alert');
+
+  const addWarranty = el('button', 'secondary', 'Додај датум истека гаранције');
+  addWarranty.type = 'button';
+  addWarranty.id = 'add-warranty';
+
+  options.append(select, custom, endText, error, addWarranty);
+  box.append(toggle, options);
+
+  const months = () => {
+    if (!on.checked) return null;
+    if (select.value === 'custom') return normalizeWarrantyMonths(custom.value);
+    return Number(select.value);
+  };
+
+  const update = () => {
+    if (!on.checked) {
+      options.classList.add('hidden');
+      mainButton.disabled = false;
+      return;
+    }
+    options.classList.remove('hidden');
+    custom.classList.toggle('hidden', select.value !== 'custom');
+    const n = months();
+    const end = n === null ? null : warrantyEndDate(receipt.dateTimeStr, n);
+    if (end) {
+      endText.textContent = 'Гаранција до: ' + formatWarrantyDate(end) + (isWarrantyExpired(end) ? ' (истекла)' : '');
+      endText.classList.remove('hidden');
+      error.classList.add('hidden');
+    } else {
+      endText.classList.add('hidden');
+      error.classList.remove('hidden');
+    }
+    mainButton.disabled = addWarranty.disabled = !end;
+  };
+
+  // "Друго…" starts from the preset chosen just before, so the field never starts invalid.
+  let lastPreset = select.value;
+  select.addEventListener('change', () => {
+    if (select.value === 'custom') {
+      custom.value = lastPreset;
+      update();
+      custom.focus();
+    } else {
+      lastPreset = select.value;
+      update();
+    }
+  });
+  on.addEventListener('change', update);
+  custom.addEventListener('input', update);
+
+  addWarranty.addEventListener('click', async () => {
+    try {
+      await chrome.tabs.create({ url: buildWarrantyCalendarUrl(receipt, months()), active: false });
+      setStatus('Догађај за истек гаранције је отворен у новој картици.');
+    } catch (err) { setStatus(err.message, 'error'); }
+  });
+
+  return { box, months };
+}
+
 // Shows the receipt for review; the calendar form opens only when the user presses the button.
 function showReceipt(receipt, calendarUrl) {
   const add = el('button', 'primary', 'Додај у календар');
+  add.id = 'add-calendar';
   add.addEventListener('click', async () => {
-    await chrome.tabs.create({ url: calendarUrl });
+    // Built at click time from the current warranty choice; with none it is the URL built at scan time.
+    const months = warranty?.months() ?? null;
+    await chrome.tabs.create({ url: months ? buildCalendarUrl(receipt, months) : calendarUrl });
     // Desktop closes the popup by itself when the new tab takes focus. Firefox for Android leaves
     // it on top of the new tab, so close it to reveal the calendar.
     if (!IN_TAB) window.close();
   });
 
-  receiptEl.replaceChildren(add, receipt.preHtml ? renderJournal(receipt.preHtml) : renderSummary(receipt));
+  const warranty = transactionKind(receipt.transactionType) === 'sale' ? renderWarranty(receipt, add) : null;
+  receiptEl.replaceChildren(
+    ...(warranty ? [warranty.box] : []),
+    add,
+    receipt.preHtml ? renderJournal(receipt.preHtml) : renderSummary(receipt),
+  );
   receiptEl.classList.remove('hidden');
   add.focus();
 }

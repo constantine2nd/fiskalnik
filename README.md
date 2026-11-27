@@ -51,6 +51,13 @@ which opens the camera; **Изабери слику…** opens your photos.
 
 The popup shows the receipt as it is printed, with its QR code; **Додај у календар** above it opens the event.
 
+**Warranty.** For a sale, tick **Гаранција** above the button and choose 6, 12, 24 or 36 months, or **Друго…**
+for your own number of months (1–120). The end date, counted from the receipt's date, is added to the event as
+`🛡 Гаранција до: 7.11.2028.`. **Додај датум истека гаранције** opens a second form in a background tab: an
+all-day event on that date, titled `Гаранција истиче: Merchant`. Open it before **Додај у календар**, which
+closes the popup. Nothing is remembered; the next receipt starts with the warranty off. The button on the
+receipt page has no warranty option; use the toolbar popup there.
+
 Refund receipts get a negative amount in the title and total and a `↩` line; other non-sale receipts (advance,
 training, …) get a `🏷` line.
 
@@ -68,6 +75,9 @@ so events saved to its **Receipts** calendar show up there too.
 - Journals are read in Cyrillic. Latin-script journals and item lines with negative amounts (some refunds and
   discounts) haven't been tested on real receipts.
 - If the tax portal changes its page, fields may come out empty.
+- One warranty period per receipt. If you save the warranty event to the Receipt Scanner's **Receipts**
+  calendar, it shows up there as a receipt without an amount once its date has passed; save it to another
+  calendar.
 
 ## Publishing
 
