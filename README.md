@@ -54,8 +54,8 @@ The popup shows the receipt as it is printed, with its QR code; **Додај у 
 **Warranty.** For a sale, tick **Гаранција** above the button and choose 6, 12, 24 or 36 months, or **Друго…**
 for your own number of months (1–120). The end date, counted from the receipt's date, is added to the event as
 `🛡 Гаранција до: 7.11.2028.`. **Додај датум истека гаранције** opens a second form in a background tab: an
-all-day event on that date, titled `Гаранција истиче: Merchant`. Open it before **Додај у календар**, which
-closes the popup. Nothing is remembered; the next receipt starts with the warranty off. The button on the
+all-day event on that date, titled `Гаранција истиче: Merchant`. Open it before **Додај у календар**: in the
+toolbar popup that button closes the popup (in a full tab the page stays open). Nothing is remembered; the next receipt starts with the warranty off. The button on the
 receipt page has no warranty option; use the toolbar popup there.
 
 Refund receipts get a negative amount in the title and total and a `↩` line; other non-sale receipts (advance,
