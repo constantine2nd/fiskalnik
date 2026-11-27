@@ -1,5 +1,5 @@
 # Warranty end date for a receipt
-Status: draft (amendment 1: expiry-event description and title, `isWarrantyExpired`, popup custom field, extra tests; amendment 2: paste into fields, `#add-calendar` errors, one expiry tab per choice, trimmed expiry title) · Author: sdlc-spec-writer · Date: 2026-11-27
+Status: draft (amendment 1: expiry-event description and title, `isWarrantyExpired`, popup custom field, extra tests; amendment 2: paste into fields, `#add-calendar` errors, one expiry tab per choice, trimmed expiry title; amendment 3: only text-entry fields keep paste and drag-and-drop) · Author: sdlc-spec-writer · Date: 2026-11-27
 
 ## Summary
 In the popup's review step the user can turn on a warranty for a sale receipt and choose its length (6, 12, 24 or
@@ -37,6 +37,8 @@ Line numbers in this section refer to `main` (`31d7ab3`), before this feature.
     With no image it shows `У клипборду нема слике.` as an error. With an image it starts a new scan, which replaces
     the receipt on screen. On `main` the popup has no text field, so this was harmless. This feature adds the
     first one (`#warranty-custom`).
+  - In tab mode, the document-wide `dragover` and `drop` handlers (`:252-264`; `:392-404` at `e1a810c`) call
+    `preventDefault()` on every drag. A drop without an image file shows `Превуци фајл слике.` as an error.
 - **Receipt-page button.** `src/content.js:30-38` builds the URL with `buildCalendarUrl(receipt)` and opens it
   directly, with no review step. It stays unchanged.
 - **Other callers of `buildCalendarUrl(receipt)`.** `store/chrome/shot.html:70` and
@@ -212,16 +214,32 @@ Line numbers in this section refer to `main` (`31d7ab3`), before this feature.
   under R4, or for a non-sale receipt, line 1 is left out. Callers validate first, as `buildWarrantyCalendarUrl`
   does. Without the `💳` line a saved expiry event at least does not inflate a real payment method in the PWA
   report. It is still counted as a receipt there (E14).
-- **R20.** A `paste` event whose target is an editable field must be left to the browser. A field counts as
-  editable when the target is inside an `input`, `textarea` or `select` element, or is `contenteditable`. Such a
-  paste gets no `preventDefault`, no status message and no scan. Pastes anywhere else work as today: an image
-  starts a scan, and anything else shows `У клипборду нема слике.`
+- **R20.** A `paste` event whose target is a **text-entry field** must be left to the browser: no
+  `preventDefault`, no status message and no scan. Only these count as text-entry fields:
+  - a `textarea`;
+  - an element that `isContentEditable`;
+  - an `input` whose `type` property is one of `text`, `number`, `search`, `email`, `url`, `tel` or `password`.
+    An `input` with no or an unknown `type` attribute reports `text`.
+
+  These are not text-entry fields, and a paste while they have focus works as today: checkboxes, radio buttons,
+  `select` elements, buttons, and `input` types such as `checkbox`, `radio`, `file`, `button`, `submit` and
+  `range`. In particular, a paste after the user ticks `#warranty-on` or changes `#warranty-months` scans the
+  pasted image. Outside text-entry fields, pastes work as today: an image starts a scan, and anything else shows
+  `У клипборду нема слике.`
 - **R21.** "Додај у календар" (`#add-calendar`) handles its own errors. If `buildCalendarUrl` or
   `chrome.tabs.create` throws:
   - the status line shows `err.message` as an error (`setStatus(err.message, 'error')`, as `#add-warranty` does);
   - the popup is not closed (`window.close()` is skipped).
 
   On success the behaviour is as in R13.
+- **R22.** In tab mode (`?tab`), a `dragover` or `drop` event is left to the browser when **both** of these hold:
+  - its target is a text-entry field (same rule as R20);
+  - the drag carries no files (`e.dataTransfer.types` does not include `'Files'`).
+
+  Then there is no `preventDefault`, no drop highlight (`#drop.over`) and no status message, so text can be dragged
+  into or within `#warranty-custom`. Every other drag works as today: an image file dropped anywhere, including on
+  `#warranty-on`, on `#warranty-months` or on `#warranty-custom`, starts a scan, and a drop without an image file
+  outside a text-entry field shows `Превуци фајл слике.`
 
 ## Design
 
@@ -440,19 +458,42 @@ Change `showReceipt(receipt, calendarUrl)` (`:84-96`):
 - `handleImage()` stays as it is. It still calls `buildCalendarUrl(receipt)` at `:191`, so an unreadable date fails
   before the review step, exactly as today (E3).
 
-Paste listener (R20). Add a helper next to it, and make the guard the listener's first statement. The rest of the
-listener is unchanged.
+Paste listener (R20) and tab-mode drag and drop (R22). Amendment 3 renames the helper from `isEditableTarget` to
+`isTextEntryTarget` and narrows it to text-entry fields. Put the helper and its constant just above the paste
+listener. In each listener the guard is the first statement; the rest of each listener is unchanged.
 ```js
-// A paste into a form field (the warranty's months) is typing, not a receipt image: leave it to the browser.
-function isEditableTarget(target) {
-  return target instanceof Element && (target.closest('input, textarea, select') !== null || target.isContentEditable);
+// Inputs that take typed text. Checkboxes, radio buttons, selects and buttons are not among them,
+// so a paste or drop while one of those has focus still scans the image.
+const TEXT_INPUT_TYPES = ['text', 'number', 'search', 'email', 'url', 'tel', 'password'];
+
+// A paste or text drag into a text field (the warranty's months) is typing, not a receipt image:
+// leave it to the browser.
+function isTextEntryTarget(target) {
+  if (!(target instanceof Element)) return false;
+  if (target.isContentEditable || target instanceof HTMLTextAreaElement) return true;
+  return target instanceof HTMLInputElement && TEXT_INPUT_TYPES.includes(target.type);
 }
 
 document.addEventListener('paste', e => {
-  if (isEditableTarget(e.target)) return;
+  if (isTextEntryTarget(e.target)) return;
+  // …existing lines unchanged…
+});
+
+// inside `if (IN_TAB) { … }`:
+const carriesFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
+document.addEventListener('dragover', e => {
+  if (isTextEntryTarget(e.target) && !carriesFiles(e)) return;   // text dragged into or within a text field
+  e.preventDefault();
+  drop.classList.add('over');
+});
+document.addEventListener('drop', e => {
+  if (isTextEntryTarget(e.target) && !carriesFiles(e)) return;
+  e.preventDefault();
   // …existing lines unchanged…
 });
 ```
+The `dragleave` handler is unchanged. Files dropped on a text field are still handled by the page (A21). Left to
+the browser, a file drop would open the file and replace the extension page.
 
 ### `src/popup.css`
 Add a section after "Receipt" (`:101-103`), using the existing variables:
@@ -574,18 +615,26 @@ body.mobile #warranty-options select, body.mobile #warranty-options input { min-
     `✓ Отворено у новој картици` (R14).
   - Changing the period, or turning the warranty off and on, enables it again for the new choice.
   - A failed open re-enables it at once.
-- **E18.** Pasting into `#warranty-custom` (or any other editable field):
-  - Text (`18`) is pasted into the field as usual. The preview updates through the `input` event, and there is no
-    `У клипборду нема слике.` error.
-  - An image pasted there does nothing: no scan, and the receipt and the warranty choice stay.
-  - Pasting outside fields still scans an image, or shows the error for non-image content (R20).
-- **E19.** `chrome.tabs.create` or `buildCalendarUrl` fails when "Додај у календар" is clicked: the error message is
-  shown, the popup stays open, and the user can try again (R21).
 - **E17.** The `isWarrantyExpired` boundary uses Belgrade dates:
   - end `7.11.2028.`, now `2028-11-07T22:59:59Z` (23:59:59 Belgrade): not expired;
   - end `7.11.2028.`, now `2028-11-07T23:00:00Z` (8 Nov 00:00 Belgrade): expired;
   - end `1.7.2027.`, now `2027-07-01T21:59:59Z` (CEST, Belgrade still 1 July): not expired;
   - end `1.7.2027.`, now `2027-07-01T22:00:00Z`: expired.
+- **E18.** Pasting into `#warranty-custom` (or any other text-entry field):
+  - Text (`18`) is pasted into the field as usual. The preview updates through the `input` event, and there is no
+    `У клипборду нема слике.` error.
+  - An image pasted there does nothing: no scan, and the receipt and the warranty choice stay.
+  - While `#warranty-on` or `#warranty-months` has focus (just ticked or changed), a pasted image scans as on
+    `main`, and pasted text shows `У клипборду нема слике.` (R20).
+  - Pasting with no field focused still scans an image, or shows the error for non-image content.
+- **E19.** `chrome.tabs.create` or `buildCalendarUrl` fails when "Додај у календар" is clicked: the error message is
+  shown, the popup stays open, and the user can try again (R21).
+- **E20.** Drag and drop in tab mode near the warranty block:
+  - Text dragged into `#warranty-custom`, or selected there and dragged within it, is handled by the browser. There
+    is no `Превуци фајл слике.` error and no drop highlight.
+  - An image file dropped on `#warranty-on`, `#warranty-months`, `#warranty-custom` or anywhere else starts a scan.
+    The page never navigates to the file.
+  - Text dropped outside a text-entry field still shows `Превуци фајл слике.` (R22).
 
 ## Test plan
 The unit tests go in `test/calendar-url.test.js`, with the existing `SALE` literal (`:10-16`) and style. The popup UI
@@ -634,10 +683,11 @@ has no browser automation in this repo, so UI rows are manual checks with `test/
 | H13 **(new)** Custom field numeric value, in Chrome and Firefox, `harness.html?scan`, warranty on, `Друго…`: `24.0` → `Гаранција до: 15.10.2028.`, buttons enabled; `1e2` → `Гаранција до: 15.2.2035.` (or the error, if the browser reports no number); `+24` → `15.10.2028.` or the error, likewise (write down which); `2.5` and an empty field → the error and both buttons disabled. With `24.0`, `#add-calendar` opens a URL with `🛡 Гаранција до: 15.10.2028.` | R12, E6 | integration (manual, harness) | `test/harness.html` |
 | H14 **(new)** Overlapping scans (E10). Open `harness.html?scan`, wait for the receipt, and in the console run `const f = window.fetch; let n = 0; window.fetch = (u, o) => new Promise(r => setTimeout(r, n++ === 0 ? 3000 : 0)).then(() => f(u, o)); handleImage(FIXTURE.receiptUrl); setTimeout(() => handleImage(FIXTURE.receiptUrl), 300);`. As soon as the receipt reappears (the second run), tick `#warranty-on` and choose 6. After 4 s: exactly one `#warranty`, still ticked with 6; the status line is empty (no error from the aborted first run). `#add-calendar` opens one URL, with `🛡 Гаранција до: 15.4.2027.` | E10, E9 | integration (manual, harness) | `test/harness.html` |
 | H15 **(new)** Unreadable date in the popup (E3). Open plain `harness.html`. In the console run `const f = window.fetch; window.fetch = (u, o) => f(u, o).then(r => r.text()).then(t => new Response(t.replace(/(id="sdcDateTimeLabel">)[^<]*/, '$1nonsense'), { headers: { 'Content-Type': 'text/html; charset=utf-8' } })); handleImage(FIXTURE.receiptUrl);`. The status line shows `Датум рачуна није препознат: nonsense` as an error, `#receipt` stays hidden, `document.getElementById('warranty') === null`, and `__opened` is empty | E3 | integration (manual, harness) | `test/harness.html` |
-| H16 **(new, amendment 2)** Paste into the field. In `harness.html?scan`, tick the warranty and choose `Друго…`. (1) Copy the text `18`. Click into `#warranty-custom`, select all, Ctrl+V: the field shows `18`, the preview reads `Гаранција до: 15.4.2028.`, the status line is empty and the receipt is still shown. (2) Copy an image (open `/test/sample-qr.png` in a tab → Copy image). Focus `#warranty-custom` and press Ctrl+V: no scan starts (the status never shows `Читам QR код…`), the receipt stays, the choice stays (ticked, `Друго…`, `18`), and `__opened` is unchanged. (3) Click an empty area of the page and press Ctrl+V with the image: a scan starts and the receipt is shown again, with the warranty off (unchanged behaviour). (4) Copy text and press Ctrl+V on the empty area: `У клипборду нема слике.` (unchanged). Repeat steps 1-2 in Firefox | R20, E18 | integration (manual, harness) | `test/harness.html` |
+| H16 **(new, amendment 2)** Paste into the field. In `harness.html?scan`, tick the warranty and choose `Друго…`. (1) Copy the text `18`. Click into `#warranty-custom`, select all, Ctrl+V: the field shows `18`, the preview reads `Гаранција до: 15.4.2028.`, the status line is empty and the receipt is still shown. (2) Copy an image (open `/test/sample-qr.png` in a tab → Copy image). Focus `#warranty-custom` and press Ctrl+V: no scan starts (the status never shows `Читам QR код…`), the receipt stays, the choice stays (ticked, `Друго…`, `18`), and `__opened` is unchanged. (3) Click an empty area of the page and press Ctrl+V with the image: a scan starts and the receipt is shown again, with the warranty off (unchanged behaviour). (4) Copy text and press Ctrl+V on the empty area: `У клипборду нема слике.` (unchanged). (5) **(added, amendment 3)** With the image still copied, click `#warranty-on` to tick it (focus stays on the checkbox) and press Ctrl+V: a scan starts, and the receipt is shown again with the warranty off. (6) **(added)** Tick the warranty, change `#warranty-months` to 12 with the mouse (focus stays on the select) and press Ctrl+V with the image: a scan starts. (7) **(added)** Tick the warranty, focus `#warranty-on` and press Ctrl+V with copied text: `У клипборду нема слике.` Repeat steps 1, 2, 5 and 6 in Firefox **(changed)** | R20, E18 | integration (manual, harness) | `test/harness.html` |
 | H17 **(new, amendment 2)** `#add-calendar` errors. In `harness.html?scan`, run in the console: `window.close = () => { window.__closed = true; }; const realCreate = chrome.tabs.create; chrome.tabs.create = async () => { throw new Error('tabs.create failed (test)'); };`. (1) Click `#add-calendar`: the status shows `tabs.create failed (test)` as an error, `window.__closed` is `undefined`, and `__opened` is unchanged. (2) Tick the warranty, run `const realBuild = buildCalendarUrl; buildCalendarUrl = () => { throw new Error('build failed (test)'); };`, and click again: the status shows `build failed (test)`, and the page is not closed. (3) Restore both (`chrome.tabs.create = realCreate; buildCalendarUrl = realBuild;`) and click again: one URL is added to `__opened`, and `window.__closed === true` | R21, E19 | integration (manual, harness) | `test/harness.html` |
 | H18 **(new, amendment 2)** One expiry tab per choice. In `harness.html?scan`, tick the warranty (24). (1) Double-click `#add-warranty`, then click it once more: exactly one new URL in `__opened` (`dates=20281015/20281016`). The button is disabled with the label `✓ Отворено у новој картици`, and the status reads `Догађај за истек гаранције је отворен у новој картици.` (2) Choose 6: the button is enabled with the label `Додај датум истека гаранције`. Click it: one more URL, with `dates=20270415/20270416`, and the button is disabled again. (3) Untick and tick the warranty: the button is enabled again. (4) Run `chrome.tabs.create = async () => { throw new Error('x'); }` and click: the status shows `x` as an error, and the button is enabled with the label `Додај датум истека гаранције` | R14, E16 | integration (manual, harness) | `test/harness.html` |
-| S3 **(new, amendment 2)** Static check: the paste listener's first statement is the editable-field guard (Acceptance criteria) | R20 | integration (script) | n/a (command) |
+| S3 **(new, amendment 2; changed, amendment 3)** Static check: the paste listener's first statement is `if (isTextEntryTarget(e.target)) return;`; the `dragover` and `drop` handlers each start with `if (isTextEntryTarget(e.target) && !carriesFiles(e)) return;`; and `isEditableTarget` no longer exists (Acceptance criteria) | R20, R22 | integration (script) | n/a (command) |
+| H19 **(new, amendment 3)** Drag and drop in tab mode, Chrome and Firefox. In `harness.html?tab&scan`, tick the warranty, choose `Друго…` and type `18`. (1) Select `18` in `#warranty-custom` and drag it to the end of the field, then drag the text `6` from another window (a text editor) into the field: the browser handles both, the status line shows no `Превуци фајл слике.` error, `#drop` never gets the `over` class, and the receipt stays. (2) Drag `test/sample-qr.png` from the file manager onto `#warranty-on`: a scan starts, and the receipt is shown again with the warranty off. (3) Tick the warranty and drop the same file on `#warranty-months`: a scan starts. (4) Tick the warranty, choose `Друго…`, and drop the file on `#warranty-custom`: a scan starts, and the tab does not navigate to the image. (5) Drag selected text from another window onto an empty area of the page: `Превуци фајл слике.` (unchanged) | R22, E20 | integration (manual, harness) | `test/harness.html` |
 | S1 Static check: no storage APIs in `src/`, and the manifests, `src/content.js` and `src/parser.js` are unchanged against `main` (Acceptance criteria) | R15, R17 | integration (script) | n/a (command) |
 | S2 Docs check: `grep` for the texts in Design in each of the files listed under R18; the "stores nothing" statements are still present | R18 | integration (script) | n/a (command) |
 
@@ -685,6 +735,16 @@ has no browser automation in this repo, so UI rows are manual checks with `test/
 21. **Tests (test-writer)**: add T25 to `test/calendar-url.test.js`. Verify: `node --test test/*.test.js` passes,
     as do both `TZ` runs. Then run H5 and H16-H18.
 
+### Amendment 3 steps (third review, on top of `e1a810c`)
+22. **Narrow the helper**: replace `isEditableTarget` with `TEXT_INPUT_TYPES` and `isTextEntryTarget` as in
+    Design, and change the paste guard to `if (isTextEntryTarget(e.target)) return;`. Verify: the first and third S3
+    greps, then H16, including the new steps 5-7.
+23. **Drag and drop guard**: inside `if (IN_TAB) { … }`, add `carriesFiles` and make
+    `if (isTextEntryTarget(e.target) && !carriesFiles(e)) return;` the first statement of the `dragover` and `drop`
+    handlers. Verify: the second S3 grep, then H19.
+24. **Regression run**: `node --test test/*.test.js` and both `TZ` runs pass unchanged (no unit-test change in
+    this amendment). Then run H1, H6 and H16-H19.
+
 ## Acceptance criteria
 Run from the repository root:
 ```bash
@@ -715,15 +775,17 @@ grep -c "Гаранција" README.md store/chrome/fields/store-listing-descrip
 grep -ci "warranty" docs/privacy.html store/firefox/fields/privacy-policy.txt docs/index.html                          # each ≥ 1
 grep -c "stores nothing" docs/privacy.html store/firefox/fields/privacy-policy.txt                                     # each ≥ 1
 
-# S3 / R20: a paste into an editable field is left to the browser
-grep -A1 "document.addEventListener('paste'" src/popup.js | grep -c "if (isEditableTarget(e.target)) return;"   # prints 1
+# S3 / R20, R22: only text-entry fields keep paste and text drags
+grep -A1 "document.addEventListener('paste'" src/popup.js | grep -c "if (isTextEntryTarget(e.target)) return;"   # prints 1
+grep -A1 -E "document.addEventListener\('(dragover|drop)'" src/popup.js | grep -c "if (isTextEntryTarget(e.target) && !carriesFiles(e)) return;"   # prints 2
+grep -c "isEditableTarget" src/popup.js                                                                     # prints 0
 
 # R11 / T23: today's Belgrade date comes from formatToParts, not from a formatted string
 grep -nE "en-CA|\.format\(" src/calendar-url.js                # no output
 
 python3 scripts/build.py                                 # ends without "Build failed"
 ```
-Manual: H1-H18 behave as described in the Test plan.
+Manual: H1-H19 behave as described in the Test plan.
 
 ## Assumptions
 - **A1. End date.** The end date is the same day-of-month N months later (`7.11.2026.` + 24 → `7.11.2028.`), as in
@@ -770,15 +832,28 @@ Manual: H1-H18 behave as described in the Test plan.
 - **A17. Custom field reading.** `valueAsNumber` follows each browser's number parsing. For `+24` and `1e2` the
   result may differ between browsers (H13 records it). Both cases are safe: either a correct whole number of
   months, or the error.
-- **A18. Editable fields.** As the review listed them, any `input` counts as editable, including the warranty
-  checkbox. A paste while the checkbox has keyboard focus therefore does nothing; the user clicks elsewhere (or
-  presses Tab) first. Focus after a scan is on `#add-calendar` (a button), so the usual paste-to-scan flow is
-  unchanged.
+- **A18. Text-entry fields (changed, amendment 3).** The user rejected the earlier rule ("any `input`, `select`
+  …"). Only `textarea`, `contenteditable` and `input` of type `text`, `number`, `search`, `email`, `url`, `tel` or
+  `password` keep a paste (R20) or a text drag (R22). The list is the HTML input types that take typed text:
+  - `number` is the only one the popup uses (`#warranty-custom`);
+  - the others are listed so that a future text field keeps working without another fix;
+  - `date`, `time` and similar picker types are left out because the popup has none.
+
+  Checkbox, radio, select and button focus never blocks paste-to-scan.
 - **A19. Button after opening.** After a successful open, `#add-warranty` shows `✓ Отворено у новој картици`,
   following the receipt-page button's `✓ Отворено у календару` (`src/content.js:34`). It says "new tab" because
   the form opens in the background. The status text stays as before. A change of choice while the tab is still
   opening (a few milliseconds) is overridden by the success branch, which disables the button again; any later
   change re-enables it.
+- **A21. Files dropped on a text field (new, amendment 3).** A drag that carries files is always handled by the
+  page, even over `#warranty-custom`: an image scans, and anything else shows `Превуци фајл слике.` Leaving it to
+  the browser would open the file in the tab and replace the extension page.
+
+  This differs from paste on purpose. An image pasted into `#warranty-custom` still does nothing (R20, unchanged
+  from amendment 2), because a paste there cannot navigate away.
+- **A22. Detecting files (new, amendment 3).** "The drag carries files" is read from
+  `e.dataTransfer.types.includes('Files')`, which Chrome and Firefox expose during `dragover` as well as `drop`.
+  The file list itself is only readable on `drop`.
 - **A20. Trimming.** Only the expiry title trims the merchant name, and only at its ends; inner spaces stay. The
   purchase title and description use `merchantName` exactly as before (R2).
 - **A15. Release.** No version bump in `manifest.json` and no regenerated screenshots. The store screenshots will
@@ -810,3 +885,13 @@ These were noted in review and are deliberately not part of this spec.
   is a possible later hardening, for example falling back to "not expired" when a part is missing.
 - **F2. Firefox for Android and `active: false`.** Whether Firefox for Android honours `active: false` for
   `#add-warranty`, or at least keeps the popup page on top, still needs a check on a real device (H10, A8).
+- **F3. T20 depends on a local `main`.** T20 and the acceptance byte-identity script compare with the local `main`
+  branch. That is meaningless once this branch is merged, and the test is skipped in CI when there is no `main`
+  ref. Replace it later with a fixed expected URL (a golden value) for the same receipts.
+- **F4. Period change while the expiry tab opens.** If the period changes in the moment between the
+  `#add-warranty` click and `chrome.tabs.create` resolving, the success branch disables the button and labels it
+  `✓ Отворено у новој картици` for the new choice, although the tab carries the old one (A19). A later fix could
+  compare the choice before and after the await.
+- **F5. Already-expired warranty.** For an expired warranty (E5), `#add-warranty` still offers an all-day event in
+  the past. If the user saves it to the PWA's Receipts calendar, it falls inside the PWA's "up to now" window at
+  once and is counted (E14, A16). A later change could hide or relabel the button for expired warranties.
