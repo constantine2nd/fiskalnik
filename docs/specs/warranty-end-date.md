@@ -1,12 +1,37 @@
 # Warranty end date for a receipt
-Status: draft (amendment 1: expiry-event description and title, `isWarrantyExpired`, popup custom field, extra tests; amendment 2: paste into fields, `#add-calendar` errors, one expiry tab per choice, trimmed expiry title; amendment 3: only text-entry fields keep paste and drag-and-drop; amendment 4: the expiry form opens in front, two-scan flow in the popup) · Author: sdlc-spec-writer · Date: 2026-11-27
+Status: draft, amendment 5 (consolidated) · Author: sdlc-spec-writer · Date: 2026-11-27
+
+**Amendment history.** Each amendment's earlier text is in the git history of this file.
+- 048c683: first version.
+- Amendment 1 (6c8f4d7):
+  - the expiry event drops its money lines;
+  - safe title;
+  - Intl parts in `isWarrantyExpired`;
+  - numeric custom field.
+- Amendment 2 (7c41516):
+  - paste into the field;
+  - `#add-calendar` errors;
+  - one expiry tab per choice;
+  - trimmed title.
+- Amendment 3 (1bce275): only text-entry fields keep paste and drag-and-drop.
+- Amendment 4 (745f5aa):
+  - the expiry form opens in front;
+  - two scans for both events.
+- **Amendment 5 (this version), a UI redesign the user asked for:**
+  - one button with a choice, **Додај као: Рачун / Гаранција**;
+  - the purchase event goes back to exactly `main`'s output, so there is no `🛡` line in it any more;
+  - the second button `#add-warranty` is gone.
+
+  IDs (R#, E#, T#, H#, S#, A#) are kept stable. Items removed in amendment 5 stay as one-line stubs saying why.
 
 ## Summary
-In the popup's review step the user can turn on a warranty for a sale receipt and choose its length (6, 12, 24 or
-36 months, or a custom number of months). The end date, counted from the receipt's own date, is added as one line
-to the purchase event's description. An optional second button opens a second Google Calendar form: an all-day
-event on the day the warranty ends. This tells the user when the warranty runs out. Nothing is stored, and with
-the warranty off the output stays byte-identical to today's.
+In the popup's review step for a sale receipt, the user chooses what **Додај у календар** adds:
+- **Рачун** (default): the purchase event, exactly as on `main`.
+- **Гаранција**: an all-day event on the day the warranty ends. The period is 6, 12, 24 or 36 months or a custom
+  number of months, counted from the receipt's own date.
+
+The point is to know when a purchase's warranty runs out. Nothing is stored. In the toolbar popup one scan adds one
+event, so getting both takes two scans; in the full-tab page the user switches the choice and clicks again.
 
 ## Context
 Line numbers in this section refer to `main` (`31d7ab3`), before this feature.
@@ -15,9 +40,10 @@ Line numbers in this section refer to `main` (`31d7ab3`), before this feature.
   - `receiptWallTime()` (`src/calendar-url.js:12-15`) keeps the receipt's Belgrade wall-clock time in a UTC
     timestamp, used only as a timezone-free container. `formatCalendarStamp()` (`:17-19`) formats it.
   - `buildReceiptDescription(receipt, itemLimit)` (`:31-56`) writes the emoji-prefixed description that the
-    Receipt Scanner PWA reads back (comment at `:1-4`). `buildCalendarUrl(receipt)` (`:58-77`) throws
-    `'Датум рачуна није препознат: ' + dateTimeStr` for an unreadable date (`:60`). It drops item lines from the end
-    until the URL is at most `MAX_CALENDAR_URL_LENGTH = 6000` (`:6`, `:72-76`).
+    Receipt Scanner PWA reads back (comment at `:1-4`).
+  - `buildCalendarUrl(receipt)` (`:58-77`) throws `'Датум рачуна није препознат: ' + dateTimeStr` for an unreadable
+    date (`:60`). It drops item lines from the end until the URL is at most `MAX_CALENDAR_URL_LENGTH = 6000`
+    (`:6`, `:72-76`).
   - Exports for Node go through the `module.exports` guard (`:79-82`). In the browser the functions are plain
     globals.
 - **Date parsing.** `parseSerbianDateParts()` (`src/parser.js:265-270`) turns `"7.11.2026. 13:25:06"` into
@@ -33,27 +59,24 @@ Line numbers in this section refer to `main` (`31d7ab3`), before this feature.
   - Errors are thrown as `Error` objects with Serbian messages and shown through `setStatus(err.message, 'error')`
     (`:194-195`).
   - Only the newest scan may touch the UI (`currentRun`, `:158-170`). Phones get `body.mobile` (`:241-246`).
-  - A document-wide `paste` listener (`:232-236`; `:352-356` at `8f92d33`) treats every paste as a receipt image.
-    With no image it shows `У клипборду нема слике.` as an error. With an image it starts a new scan, which replaces
-    the receipt on screen. On `main` the popup has no text field, so this was harmless. This feature adds the
-    first one (`#warranty-custom`).
-  - In tab mode, the document-wide `dragover` and `drop` handlers (`:252-264`; `:392-404` at `e1a810c`) call
-    `preventDefault()` on every drag. A drop without an image file shows `Превуци фајл слике.` as an error.
+  - A document-wide `paste` listener (`:232-236`) treats every paste as a receipt image. With no image it shows
+    `У клипборду нема слике.` as an error; with an image it starts a new scan. On `main` the popup has no text
+    field. This feature adds one (`#warranty-custom`).
+  - In tab mode, the document-wide `dragover` and `drop` handlers (`:252-264`) call `preventDefault()` on every
+    drag. A drop without an image file shows `Превуци фајл слике.` as an error.
 - **Receipt-page button.** `src/content.js:30-38` builds the URL with `buildCalendarUrl(receipt)` and opens it
   directly, with no review step. It stays unchanged.
 - **Other callers of `buildCalendarUrl(receipt)`.** `store/chrome/shot.html:70` and
   `.claude/skills/demo-video/capture.js:40` call it with one argument. They must keep working unchanged.
 - **Receipt Scanner PWA.** It is not in this repo. A local clone exists at
   `/home/marko/Tesons/GitHub/constantine2nd/receipt` (commit `fb02811`).
-  - `eventToReceipt()` (`js/app.js:405-453`) reads lines by prefix (`getLine('💰 Укупно: ')` and so on). The item
-    list stops at the first line that does not start with `• `, and the address scan stops at the first
-    `📋🕐👤💳` line. A new line placed after `🧾 ПДВ` is therefore ignored.
+  - `eventToReceipt()` (`js/app.js:405-453`) reads description lines by prefix.
   - `parseSummary()` (`js/app.js:456`, used by the monthly report in `js/report.js:66-74`) splits the event title at
     the last `' — '` and reads the part after it as the amount.
   - `fetchReceiptEvents()` (`js/api.js:149-160`) lists only events from the past 2 years up to now.
   - The monthly report (`js/report.js:48-51`, `:60-90`) counts **every** event of the month in the Receipts
     calendar, without looking at its description:
-    - the amount comes from the title (`parseSummary`), not from the `💰` line;
+    - the amount comes from the title, not from the `💰` line;
     - the payment bucket comes from the `💳` line, and an event without one goes to "unknown payment";
     - the count and the average use `events.length`.
 
@@ -80,15 +103,19 @@ Line numbers in this section refer to `main` (`31d7ab3`), before this feature.
 
 ## Goals / Non-goals
 **Goals**
-- A per-receipt warranty choice in the popup review step, for sale receipts only, off by default.
-- The end date (receipt date + N months) as a line in the purchase event's description.
-- An optional second Google Calendar form: an all-day event on the end date.
+- For a sale receipt, the review step offers a choice, **Додај као: Рачун / Гаранција**. **Рачун** is the default
+  and adds the purchase event exactly as on `main`. **Гаранција** adds an all-day event on the warranty end date.
+- A period picker (presets and custom months) with an end-date preview, shown only for **Гаранција**.
 - Correct date arithmetic (end of month, leap years, machine timezone) and a cap on the custom period.
+- Paste and drag-and-drop keep working around the new controls.
 - Docs, store texts and the privacy policy updated.
 
 **Non-goals.** Do not build any of these:
-- Warranty on the receipt-page floating button (`src/content.js`). Users who want a warranty there use the toolbar
-  popup, whose scan button uses the page's own link.
+- Any change to the purchase event. No `🛡` line, and no warranty parameter on `buildCalendarUrl` or
+  `buildReceiptDescription`.
+- Warranty on the receipt-page floating button (`src/content.js`). Users who want it there use the toolbar popup,
+  whose scan button uses the page's own link.
+- Adding both events with one click, a second button, popup windows, or closing calendar tabs automatically.
 - A warranty per item, or several periods on one receipt.
 - Automatic detection of warranty terms in the receipt text, or any legal or consumer-law wording or advice.
 - Remembering the last choice, settings or history (no `storage` permission, no `localStorage` or `sessionStorage`).
@@ -98,41 +125,50 @@ Line numbers in this section refer to `main` (`31d7ab3`), before this feature.
 - A version bump, regenerated store screenshots, or a new demo video.
 
 ## Requirements
-- **R1.** For a receipt whose `transactionKind(receipt.transactionType)` is `'sale'`, the popup review step must show
-  a warranty block (`#warranty`) above the "Додај у календар" button. The block starts with the checkbox
-  `#warranty-on` unchecked and its options `#warranty-options` hidden.
-- **R2.** While the warranty is off, the URL opened by "Додај у календар" must be byte-identical to today's
-  `buildCalendarUrl(receipt)`. `buildCalendarUrl(receipt)`, `buildCalendarUrl(receipt, undefined)` and
-  `buildCalendarUrl(receipt, null)` must return the same string, and that string must equal the output of the
-  `main` branch for the same receipt.
-- **R3.** When the warranty is on, the user must be able to choose:
+- **R1 (changed, A5).** For a receipt whose `transactionKind(receipt.transactionType)` is `'sale'`, the popup review
+  step must show the warranty block `#warranty` above "Додај у календар" (`#add-calendar`). The block contains:
+  - a radio group labelled `Додај као:`, with two options:
+    - `Рачун` (`#add-as-receipt`, checked)
+    - `Гаранција` (`#add-as-warranty`)
+  - the hint (R23), in popup mode only;
+  - the period picker `#warranty-options`, hidden.
+
+  For refunds and other non-sale receipts there is no block, and the review step and the button behave exactly as
+  on `main`.
+- **R2 (changed, A5).** The purchase path must equal `main`:
+  - `buildCalendarUrl(receipt)` and `buildReceiptDescription(receipt, itemLimit)` keep `main`'s signatures and
+    return byte-identical output to `main` for every receipt.
+  - With **Рачун** selected (and for every non-sale receipt), "Додај у календар" opens exactly that URL.
+- **R3 (changed, A5).** While **Гаранција** is selected, the user must be able to choose:
   - a preset period with `#warranty-months`, offering 6, 12, 24 and 36 months, with 24 selected when the block
     first appears; or
   - "Друго…", which shows `#warranty-custom`, a number input for a whole number of months from 1 to
     `MAX_WARRANTY_MONTHS` (120).
+
+  While **Рачун** is selected, `#warranty-options` (picker, preview and error) is hidden.
 - **R4.** `normalizeWarrantyMonths(value)` must return the integer number of months when `value` is
   - an integer `Number` from 1 to 120, or
   - a string that, after trimming whitespace, is 1-3 ASCII digits with a value from 1 to 120.
-  
+
   For anything else it must return `null`.
 - **R5.** `warrantyEndDate(dateTimeStr, months)` must return the end date `{year, month, day}` (month 1-12):
   - It is the receipt's own date (from `dateTimeStr`, never "today") plus `months` calendar months.
   - When that day does not exist in the target month, it is clamped to the month's last day.
   - It returns `null` when the date cannot be parsed or `months` is not valid under R4.
-- **R6.** The warranty end date, the description line, and the all-day event dates must depend only on the date
-  printed on the receipt. They must not change with the machine's timezone or daylight saving time.
-- **R7.** With a valid warranty on a sale receipt, the purchase event description must contain exactly one extra
-  line, `🛡 Гаранција до: D.M.YYYY.`. Its rules:
-  - `🛡` is U+1F6E1 with no variation selector, followed by one space.
-  - Day and month have no leading zero, and the date ends with a dot. Example: `🛡 Гаранција до: 7.11.2028.`
-  - The line sits immediately before the `🔗` line, which stays last.
-  - All other lines are unchanged and in the same order. For non-sale receipts no line is added.
-- **R8.** `buildCalendarUrl(receipt, warrantyMonths)`:
-  - With `warrantyMonths` `undefined` or `null`, it returns today's output.
-  - With a valid value on a sale receipt, it adds the R7 line.
-  - With a valid value on a non-sale receipt, it returns the same output as without a warranty.
-  - With any other value it throws `Error('Неисправан период гаранције: ' + warrantyMonths)`.
-  - An unreadable receipt date still throws `'Датум рачуна није препознат: ' + dateTimeStr`, checked first.
+- **R6.** The warranty end date, the `🛡` line and the all-day event dates must depend only on the date printed on
+  the receipt. They must not change with the machine's timezone or daylight saving time.
+- **R7 (changed, A5).** The warranty line has the format `🛡 Гаранција до: D.M.YYYY.`:
+  - `🛡` is U+1F6E1 with no variation selector, followed by one space;
+  - day and month have no leading zero, and the date ends with a dot. Example: `🛡 Гаранција до: 7.11.2028.`
+
+  It appears **only** as the first line of the expiry description (R19). The purchase description never contains
+  it.
+- **R8 (changed, A5).** `buildCalendarUrl(receipt)` and `buildReceiptDescription(receipt, itemLimit)` take no
+  warranty argument; their declared parameter counts (`.length`) are 1 and 2.
+  - An extra argument passed by a caller is ignored, as for any JavaScript function: the output equals the call
+    without it.
+  - An unreadable receipt date throws `'Датум рачуна није препознат: ' + dateTimeStr`, as on `main`.
+  - `'Неисправан период гаранције: …'` is thrown only by `buildWarrantyCalendarUrl` (R9).
 - **R9.** `buildWarrantyCalendarUrl(receipt, warrantyMonths)` must return a Google Calendar template URL. Its query
   parameters, in this order:
   - `action=TEMPLATE`
@@ -145,72 +181,68 @@ Line numbers in this section refer to `main` (`31d7ab3`), before this feature.
     Examples: `ALFA — BETA DOO` → `Гаранција истиче: ALFA - BETA DOO`; `'   '` → `Гаранција истиче`.
   - `dates=YYYYMMDD/YYYYMMDD`: an all-day event on the end date; the second date is the next day (exclusive)
   - `ctz=Europe/Belgrade`
-  - `details`: `buildWarrantyDescription(receipt, itemLimit, warrantyMonths)` (R19). It has no `💰` total, `💳`
-    payment or `🧾` VAT line.
+  - `details`: `buildWarrantyDescription(receipt, itemLimit, warrantyMonths)` (R19)
   - `location=<receipt.address>`
 
   It throws, in this order of checks:
   1. `'Датум рачуна није препознат: ' + dateTimeStr` when the date cannot be parsed.
-  2. `'Неисправан период гаранције: ' + warrantyMonths` when the months are not valid under R4, including
-     `null` and `undefined`.
+  2. `'Неисправан период гаранције: ' + warrantyMonths` when the months are not valid under R4, including `null` and
+     `undefined`.
   3. `'Гаранција се додаје само за рачун продаје.'` when the receipt is not a sale.
-- **R10.** Both URLs (R8 and R9) must be at most 6000 characters. To fit, only item lines are dropped, from the end,
-  with the existing `… +N` marker. The other lines are always kept: in the purchase event (R8) that means the
-  `🛡`, `💰 Укупно` and `🔗` lines; in the expiry event (R9) the `🛡`, `📋`, `🕐` and `🔗` lines.
-- **R11.** While the warranty is on and valid, `#warranty-end` must show `Гаранција до: D.M.YYYY.`, updated on every
-  change of the checkbox, preset or custom value. When `isWarrantyExpired(end)` is true, the text ends with
-  ` (истекла)`, and the buttons stay enabled.
-- **R12.** The popup reads the custom field (`type="number"`) as a number, `custom.valueAsNumber`. It accepts it
-  only when it is a whole number, and then passes that number to `normalizeWarrantyMonths`, so `24.0` gives 24;
-  `+24` and `1e2` give 24 and 100 wherever the browser reports a number for them. `normalizeWarrantyMonths`
-  itself does not change (R4). While the warranty is on and that value is invalid:
+- **R10 (changed, A5).** The expiry URL must be at most 6000 characters. To fit, only item lines are dropped, from
+  the end, with `… +N`. The `🛡`, `📋`, `🕐` and `🔗` lines are always kept. The purchase URL keeps `main`'s
+  trimming (R2).
+- **R11 (changed, A5).** While **Гаранција** is selected and the period is valid, `#warranty-end` must show
+  `Гаранција до: D.M.YYYY.`. It is updated on every change of the choice, the preset or the custom value. When
+  `isWarrantyExpired(end)` is true, the text ends with ` (истекла)`, and the button stays enabled.
+- **R12 (changed, A5).** The popup reads the custom field (`type="number"`) as `custom.valueAsNumber`, accepts it
+  only when it is a whole number, and passes it to `normalizeWarrantyMonths`. So `24.0` gives 24, and `+24` and
+  `1e2` give 24 and 100 wherever the browser reports a number for them. While **Гаранција** is selected and that
+  value is invalid:
   - `#warranty-error` shows `Унеси број месеци од 1 до 120.`;
   - `#warranty-end` is hidden;
-  - both `#add-calendar` and `#add-warranty` are disabled.
-  
-  No URL is built and no tab is opened.
-- **R13.** "Додај у календар" (`#add-calendar`) must build its URL at click time from the current choice. With a
-  valid warranty it opens `buildCalendarUrl(receipt, months)`. With the warranty off it opens the URL from R2.
-  Opening (`chrome.tabs.create({url})`) and closing the popup are the same as today.
-- **R14 (rewritten, amendment 4).** "Додај датум истека гаранције" (`#add-warranty`) must be visible only while
-  the warranty is on. It opens the expiry form in front, like `#add-calendar`.
-  - On click it is disabled at once, so a double click opens one form. It then calls
-    `chrome.tabs.create({ url: buildWarrantyCalendarUrl(receipt, months), active: true })`.
-  - **Popup mode** (toolbar popup on desktop; the full-screen page on Firefox for Android; every mode except
-    `?tab`): on success it calls `window.close()`, exactly as `#add-calendar` does (R13). There is no label change
-    and no status message, because the popup is gone.
-  - **Tab mode** (`?tab`, the full-tab page, which stays open): on success it does not close the page. The button
-    stays disabled, its label becomes `✓ Отворено у новој картици`, and the status line reads
-    `Догађај за истек гаранције је отворен у новој картици.` It becomes enabled again, with the label
-    `Додај датум истека гаранције`, at the next change of the warranty toggle, the preset or the custom value,
-    provided the new choice is valid (R12). One choice therefore opens at most one expiry tab from this page.
-  - **On error**, in either mode, when the build or `chrome.tabs.create` throws:
-    - the status line shows `err.message` as an error (as in R21);
-    - the popup or page is not closed;
-    - the button is enabled again with its original label.
-  - Either button may be used alone (R13 for the purchase event, R14 for the expiry event). In popup mode, getting
-    both events takes two scans of the same receipt (R23). In tab mode both buttons can be used one after the
-    other.
-- **R15.** Nothing may be persisted:
+  - `#add-calendar` is disabled.
+
+  Selecting **Рачун** enables `#add-calendar` again at once, whatever the hidden custom value is.
+- **R13 (changed, A5).** "Додај у календар" (`#add-calendar`), the only add button, builds its URL at click time
+  from the current choice:
+  - **Рачун**, or a non-sale receipt: `calendarUrl`, the URL `handleImage` built with `buildCalendarUrl(receipt)`
+    (R2).
+  - **Гаранција**: `buildWarrantyCalendarUrl(receipt, months)`.
+
+  Both open with `chrome.tabs.create({ url })`, in front, as on `main`.
+  - **Popup mode** (every mode except `?tab`: the desktop toolbar popup and Firefox for Android's full-screen page):
+    the popup then closes (`window.close()`).
+  - **Tab mode** (`?tab`): the page stays open, and the user can switch the choice and click again without
+    rescanning.
+
+  Errors follow R21.
+- **R14 (removed, amendment 5).** `#add-warranty` no longer exists. Its job is done by **Гаранција** + "Додај у
+  календар" (R13).
+- **R15 (changed, A5).** Nothing may be persisted:
   - no use of `localStorage`, `sessionStorage`, `indexedDB`, `chrome.storage`/`browser.storage` or cookies in `src/`;
   - no change to `manifest.json` or `manifest.firefox.json`;
-  - every newly shown receipt starts with the warranty off.
-- **R16.** The warranty block must work and fit in:
+  - every newly shown receipt starts with **Рачун** selected, 24 months, and the custom field hidden.
+- **R16 (changed, A5).** The warranty block must work and fit in:
   - the 340px desktop popup;
   - the full-tab page (`?tab`);
-  - Firefox for Android (`body.mobile`): on a 360px-wide viewport the checkbox row, select, custom input and button
-    are each at least 44px tall, with no horizontal scroll;
+  - Firefox for Android (`body.mobile`): on a 360px-wide viewport the two radio options, the select, the custom
+    input and `#add-calendar` are each at least 44px tall, with no horizontal scroll;
   - light and dark color schemes.
-  
+
   All visible labels are in Serbian Cyrillic, with the exact texts in Design.
 - **R17.** The receipt-page button (`src/content.js`) and the PWA-shared parser (`src/parser.js`) must stay
   unchanged.
-- **R18.** The README, the privacy policy (`docs/privacy.html`, `store/firefox/fields/privacy-policy.txt`), the
-  landing page (`docs/index.html`) and both store descriptions must describe the feature with the texts in
-  Design. The "stores nothing" statements stay and remain true.
+- **R18 (changed, A5).** The README, the privacy policy (`docs/privacy.html`, `store/firefox/fields/privacy-policy.txt`),
+  the landing page (`docs/index.html`) and both store descriptions must describe the feature with the texts in
+  Design:
+  - the choice, the expiry event and the two-scan flow;
+  - no wording about a checkbox, a second button or a `🛡` line in the purchase event.
+
+  The "stores nothing" statements stay and remain true.
 - **R19.** `buildWarrantyDescription(receipt, itemLimit, warrantyMonths)` must return exactly these lines, in this
   order, joined by `\n`:
-  1. `🛡 Гаранција до: D.M.YYYY.` (as in R7)
+  1. `🛡 Гаранција до: D.M.YYYY.` (R7)
   2. `📋 <receiptNumber>`
   3. `🕐 <dateTimeStr>`
   4. `🛒 Артикли:`
@@ -219,120 +251,112 @@ Line numbers in this section refer to `main` (`31d7ab3`), before this feature.
   6. `🔗 <sourceUrl>`
 
   It has no merchant, address, `PIB:`, `👤`, `💳`, `↩`/`🏷`, `💰` or `🧾` line. With a period that is not valid
-  under R4, or for a non-sale receipt, line 1 is left out. Callers validate first, as `buildWarrantyCalendarUrl`
-  does. Without the `💳` line a saved expiry event at least does not inflate a real payment method in the PWA
-  report. It is still counted as a receipt there (E14).
-- **R20.** A `paste` event whose target is a **text-entry field** must be left to the browser: no
-  `preventDefault`, no status message and no scan. Only these count as text-entry fields:
+  under R4, or for a non-sale receipt, line 1 is left out; callers validate first, as `buildWarrantyCalendarUrl`
+  does.
+- **R20 (changed, A5: examples only).** A `paste` event whose target is a **text-entry field** must be left to the
+  browser: no `preventDefault`, no status message and no scan. Only these count as text-entry fields:
   - a `textarea`;
   - an element that `isContentEditable`;
   - an `input` whose `type` property is one of `text`, `number`, `search`, `email`, `url`, `tel` or `password`.
-    An `input` with no or an unknown `type` attribute reports `text`.
 
-  These are not text-entry fields, and a paste while they have focus works as today: checkboxes, radio buttons,
-  `select` elements, buttons, and `input` types such as `checkbox`, `radio`, `file`, `button`, `submit` and
-  `range`. In particular, a paste after the user ticks `#warranty-on` or changes `#warranty-months` scans the
-  pasted image. Outside text-entry fields, pastes work as today: an image starts a scan, and anything else shows
-  `У клипборду нема слике.`
-- **R21.** "Додај у календар" (`#add-calendar`) handles its own errors. If `buildCalendarUrl` or
+  Radio buttons, checkboxes, `select` elements and buttons are not text-entry fields; a paste while they have focus
+  works as on `main`. In particular, a paste right after the user clicks `#add-as-receipt` or `#add-as-warranty`,
+  or changes `#warranty-months`, scans the pasted image. Outside text-entry fields: an image starts a scan, and
+  anything else shows `У клипборду нема слике.`
+- **R21 (changed, A5).** "Додај у календар" handles its own errors. If `buildWarrantyCalendarUrl` or
   `chrome.tabs.create` throws:
-  - the status line shows `err.message` as an error (`setStatus(err.message, 'error')`, as `#add-warranty` does);
-  - the popup is not closed (`window.close()` is skipped).
-
-  On success the behaviour is as in R13.
-- **R22.** In tab mode (`?tab`), a `dragover` or `drop` event is left to the browser when **both** of these hold:
-  - its target is a text-entry field (same rule as R20);
+  - the status line shows `err.message` as an error (`setStatus(err.message, 'error')`);
+  - the popup is not closed.
+- **R22 (changed, A5: examples only).** In tab mode, a `dragover` or `drop` event is left to the browser when both
+  hold:
+  - its target is a text-entry field (R20);
   - the drag carries no files (`e.dataTransfer.types` does not include `'Files'`).
 
-  Then there is no `preventDefault`, no drop highlight (`#drop.over`) and no status message, so text can be dragged
-  into or within `#warranty-custom`. Every other drag works as today: an image file dropped anywhere, including on
-  `#warranty-on`, on `#warranty-months` or on `#warranty-custom`, starts a scan, and a drop without an image file
-  outside a text-entry field shows `Превуци фајл слике.`
-- **R23 (new, amendment 4).** In popup mode (not `?tab`), the warranty block must show this hint while the warranty
-  is on, whether or not the period is valid:
-  `За оба догађаја скенирај рачун двапут: једном за куповину, једном за истек гаранције.`
-  - It is a `<p id="warranty-hint">`, the last element of `#warranty-options`, directly below `#add-warranty` and
-    therefore just above `#add-calendar`.
-  - It is hidden with the rest of `#warranty-options` while the warranty is off.
-  - In tab mode the element is not created, because both buttons work there without a rescan.
+  Then there is no `preventDefault`, no drop highlight and no status message. Every other drag works as on `main`:
+  - an image file dropped anywhere, including on either radio option, on `#warranty-months` or on
+    `#warranty-custom`, starts a scan;
+  - a drop without an image file outside a text-entry field shows `Превуци фајл слике.`
+- **R23 (changed, A5).** In popup mode, for a sale, the block must show this hint directly under the radio group,
+  whichever option is selected: `За рачун и гаранцију скенирај рачун двапут.` It is `<p id="warranty-hint">`. In
+  tab mode it is not created, and non-sale receipts have no block at all.
 
 ## Design
 
 ### Files
 | File | Change |
 |---|---|
-| `src/calendar-url.js` | Add constants and pure functions; extend `buildReceiptDescription` and `buildCalendarUrl`; add `buildWarrantyDescription` and `buildWarrantyCalendarUrl`; extend exports |
-| `src/popup.js` | Add `renderWarranty()`; change `showReceipt()` |
-| `src/popup.css` | New "Warranty" section |
-| `test/calendar-url.test.js` | New unit tests (test-writer) |
-| `test/harness.html` | Optional `?refund` switch (test-writer), see Test plan |
+| `src/calendar-url.js` | Constants and pure warranty functions; `buildWarrantyDescription` and `buildWarrantyCalendarUrl`. `buildCalendarUrl` and `buildReceiptDescription` lose the warranty parameter added on this branch (**amendment 5**). |
+| `src/popup.js` | `renderWarranty()` (radio choice, picker, hint); `showReceipt()` (one button); paste and drag guards |
+| `src/popup.css` | "Warranty" section |
+| `test/calendar-url.test.js` | Unit tests (test-writer) |
+| `test/harness.html` | `?refund` switch (exists) |
 | `README.md`, `docs/privacy.html`, `docs/index.html`, `store/firefox/fields/privacy-policy.txt`, `store/chrome/fields/store-listing-description.txt`, `store/firefox/fields/description.txt` | Texts below |
-| `docs/specs/warranty-end-date.md` | This spec |
 
-No new files in `src/`, no change to `popup.html` (the block is built in JS, as the rest of `#receipt` is).
+No new files in `src/`, and no change to `popup.html`: the block is built in JS, as the rest of `#receipt` is.
 
-### `src/calendar-url.js`: interface
-Add these constants near `TRANSACTION_MARK` (`:24`):
+### `src/calendar-url.js`
+Constants (near `TRANSACTION_MARK`):
 ```js
 const WARRANTY_PRESETS = [6, 12, 24, 36];   // months offered in the popup
-const DEFAULT_WARRANTY_MONTHS = 24;          // selected when the warranty is turned on
+const DEFAULT_WARRANTY_MONTHS = 24;          // selected when the block appears
 const MAX_WARRANTY_MONTHS = 120;             // custom periods above this are rejected
-const WARRANTY_MARK = '\u{1F6E1}';           // 🛡 (no U+FE0F)
+const WARRANTY_MARK = '\u{1F6E1}';           // 🛡 (no U+FE0F), only in the expiry description
 ```
 
-Functions. All are pure; "date" means `{year, month, day}` with a 1-based month.
+Exported functions after amendment 5. The list is the same eight names as before; only two signatures shrink.
 ```js
-normalizeWarrantyMonths(value) → number | null
-warrantyEndDate(dateTimeStr, months) → { year, month, day } | null
-formatWarrantyDate({ year, month, day }) → string          // {2028,11,7} → '7.11.2028.'
+buildCalendarUrl(receipt) → string                                     // main's signature and output (R2, R8)
+buildReceiptDescription(receipt, itemLimit) → string                   // main's signature and output (R2, R8)
+buildWarrantyCalendarUrl(receipt, warrantyMonths) → string             // R9
+buildWarrantyDescription(receipt, itemLimit, warrantyMonths) → string  // R19
+normalizeWarrantyMonths(value) → number | null                         // R4
+warrantyEndDate(dateTimeStr, months) → { year, month, day } | null     // R5
+formatWarrantyDate({ year, month, day }) → string                      // {2028,11,7} → '7.11.2028.'
 isWarrantyExpired({ year, month, day }, now = new Date()) → boolean
-buildReceiptDescription(receipt, itemLimit, warrantyMonths) → string   // 3rd param new, optional
-buildCalendarUrl(receipt, warrantyMonths) → string                     // 2nd param new, optional
-buildWarrantyDescription(receipt, itemLimit, warrantyMonths) → string  // new (R19)
-buildWarrantyCalendarUrl(receipt, warrantyMonths) → string             // new
+```
+```js
+module.exports = {
+  buildCalendarUrl, buildReceiptDescription, buildWarrantyCalendarUrl, buildWarrantyDescription,
+  normalizeWarrantyMonths, warrantyEndDate, formatWarrantyDate, isWarrantyExpired,
+  WARRANTY_PRESETS, DEFAULT_WARRANTY_MONTHS, MAX_WARRANTY_MONTHS,
+};
 ```
 
 Behaviour:
+- **`buildReceiptDescription(receipt, itemLimit)` and `buildCalendarUrl(receipt)` (amendment 5).**
+  - Remove the `warrantyMonths` parameter, the `🛡` entry, and the `checkWarrantyMonths` call from both.
+  - Their bodies may keep calling the shared internal helpers `itemLinesText(items, itemLimit)` and
+    `fitCalendarUrl(make, itemCount)`.
+  - The test is the output, which must equal `main`'s byte for byte (A30).
 - **`normalizeWarrantyMonths`**:
   - A number must satisfy `Number.isInteger(v) && v >= 1 && v <= MAX_WARRANTY_MONTHS`.
   - A string must match `/^\d{1,3}$/` after `.trim()`, and its `Number()` must be from 1 to 120.
-  - Any other type (`null`, `undefined`, boolean, object) gives `null`.
+  - Any other type gives `null`.
   - Examples: `24`→24, `'24'`→24, `' 24 '`→24, `'024'`→24, `'120'`→120. These give `null`: `0`, `-3`, `2.5`, `NaN`,
     `Infinity`, `121`, `''`, `'0'`, `'-3'`, `'+24'`, `'2.5'`, `'1e2'`, `'abc'`, `'121'`, `'999999'`, `true`.
 - **`warrantyEndDate`**:
-  1. Read the date with `parts = parseSerbianDateParts(dateTimeStr)`, and the period with
-     `n = normalizeWarrantyMonths(months)`. If either is `null`, return `null`.
-  2. Compute the target month: `y = parts.year`, `m0 = parts.month - 1 + n`, `ty = y + Math.floor(m0 / 12)`,
+  1. Read `parts = parseSerbianDateParts(dateTimeStr)` and `n = normalizeWarrantyMonths(months)`. If either is
+     `null`, return `null`.
+  2. Compute the target month: `m0 = parts.month - 1 + n`, `ty = parts.year + Math.floor(m0 / 12)`,
      `tm = m0 % 12` (0-based).
   3. Find the target month's last day: `last = new Date(Date.UTC(ty, tm + 1, 0)).getUTCDate()`.
   4. Return `{ year: ty, month: tm + 1, day: Math.min(parts.day, last) }`.
 
-  Only `Date.UTC` and `getUTC*` are used, never local-time `Date` methods (R6). The time of day is ignored.
-- **`formatWarrantyDate`**: `` `${day}.${month}.${year}.` ``. Day and month are not zero-padded, matching the
-  receipts' `7.11.2026.` style.
+  Only `Date.UTC` and `getUTC*` are used (R6).
+- **`formatWarrantyDate`**: `` `${day}.${month}.${year}.` ``, with no zero padding.
 - **`isWarrantyExpired`**:
-  - Get today's Belgrade date from the parts, never from the shape of a formatted string. (One Chrome/ICU release
-    returned `'M/D/YYYY'` for `en-CA`.)
+  - Get today's Belgrade date from `formatToParts`, never from a formatted string:
     ```js
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: 'Europe/Belgrade', calendar: 'gregory', numberingSystem: 'latn',
       year: 'numeric', month: 'numeric', day: 'numeric',
     }).formatToParts(now);
     const get = type => Number(parts.find(p => p.type === type).value);
-    const today = { year: get('year'), month: get('month'), day: get('day') };
     ```
-  - Compare `year * 10000 + month * 100 + day` for both dates. Return `true` only if the end date is strictly
-    earlier; the end day itself is not expired.
+  - Compare `year * 10000 + month * 100 + day` for both dates; return `true` only if the end date is strictly
+    earlier.
   - Do not call `.format()`.
-- **`buildReceiptDescription(receipt, itemLimit, warrantyMonths)`**:
-  - Compute `end = transactionKind(receipt.transactionType) === 'sale' ? warrantyEndDate(receipt.dateTimeStr, warrantyMonths) : null`.
-  - In the array at `:41-55`, insert `end ? `${WARRANTY_MARK} Гаранција до: ${formatWarrantyDate(end)}` : ''`
-    between the `🧾 ПДВ` entry and the `🔗` entry. The `.filter(Boolean)` already drops it when it is empty.
-  - Nothing else changes.
-- **Item lines helper.** Move the item-line text (`:33-39`) into an internal
-  `itemLinesText(items, itemLimit) → string`, so that both descriptions produce identical item lines and trimming.
-  `buildReceiptDescription`'s output must not change (R2).
-- **`buildWarrantyDescription(receipt, itemLimit, warrantyMonths)`** (R19):
+- **`buildWarrantyDescription`** (R19):
   ```js
   const end = transactionKind(receipt.transactionType) === 'sale' ? warrantyEndDate(receipt.dateTimeStr, warrantyMonths) : null;
   return [
@@ -344,7 +368,7 @@ Behaviour:
     `🔗 ${receipt.sourceUrl}`,
   ].filter(Boolean).join('\n');
   ```
-  For `SALE` with 24 months:
+  For `SALE` + 24:
   ```
   🛡 Гаранција до: 7.11.2028.
   📋 ABCD1234-ABCD1234-1001
@@ -354,50 +378,28 @@ Behaviour:
   • Limunada 0.3 ×1 = 295,00 RSD
   🔗 https://suf.purs.gov.rs/v/?vl=AAAA…  (the full SALE.sourceUrl)
   ```
-- **`buildCalendarUrl(receipt, warrantyMonths)`**:
-  1. Keep the date check at `:59-60` first.
-  2. Then, if `warrantyMonths != null` and `normalizeWarrantyMonths(warrantyMonths) === null`, throw
-     `new Error('Неисправан период гаранције: ' + warrantyMonths)`.
-  3. Pass `warrantyMonths` through to `buildReceiptDescription`.
-  4. Move the trimming loop (`:72-76`) into an internal helper `fitCalendarUrl(make, itemCount)`, which returns the
-     URL, so that both builders share it.
+- **`buildWarrantyCalendarUrl`**:
+  1. Check the date, then the months, then that the receipt is a sale (R9).
+  2. Compute `end = warrantyEndDate(...)`, and the dates `YYYYMMDD/YYYYMMDD` (end, end + 1 day) via
+     `Date.UTC(...).toISOString()`.
+  3. Build the title:
+     `const name = (receipt.merchantName || '').trim().replace(/—/g, '-'); const text = name ? 'Гаранција истиче: ' + name : 'Гаранција истиче';`
+  4. Build the URL with `URLSearchParams({ action, text, dates, ctz, details, location })` through `fitCalendarUrl`.
 
-  With `warrantyMonths == null`, the URL parameters, their order and their values are as today.
-- **`buildWarrantyCalendarUrl(receipt, warrantyMonths)`**:
-  1. Check the date (same throw as `:60`), then the months (same throw as above, `null` and `undefined` included),
-     then that the receipt is a sale (throw `new Error('Гаранција се додаје само за рачун продаје.')`).
-  2. Compute `end = warrantyEndDate(...)`. Format it as `YYYYMMDD` with
-     `new Date(Date.UTC(end.year, end.month - 1, end.day)).toISOString().slice(0, 10).replace(/-/g, '')`, and the
-     next day the same way with `day + 1`.
-  3. Build the title. Trim first, then replace em dashes (R9):
-     ```js
-     const name = (receipt.merchantName || '').trim().replace(/\u2014/g, '-');
-     const text = name ? 'Гаранција истиче: ' + name : 'Гаранција истиче';
-     ```
-  4. Build the URL with `new URLSearchParams({ action, text, dates, ctz, details, location })`, in that key order,
-     with `details: buildWarrantyDescription(receipt, itemLimit, warrantyMonths)`, through `fitCalendarUrl`.
+  Example: `SALE` + 24 → `text=Гаранција истиче: KAFE PRIMER DOO`, `dates=20281107/20281108`.
 
-  Example: `SALE` (`7.11.2026. 13:25:06`, merchant `KAFE PRIMER DOO`) with 24 months gives
-  `text=Гаранција истиче: KAFE PRIMER DOO` and `dates=20281107/20281108`.
-- **Exports** (`:80-82`):
-  ```js
-  module.exports = {
-    buildCalendarUrl, buildReceiptDescription, buildWarrantyCalendarUrl, buildWarrantyDescription,
-    normalizeWarrantyMonths, warrantyEndDate, formatWarrantyDate, isWarrantyExpired,
-    WARRANTY_PRESETS, DEFAULT_WARRANTY_MONTHS, MAX_WARRANTY_MONTHS,
-  };
-  ```
-- **Global names.** The module loads as a classic script next to `parser.js`, `content.js` and `popup.js`. The new
-  top-level names must not clash with names in those files (checked: none do).
-
-### `src/popup.js`: UI
-Add `renderWarranty(receipt, mainButton) → { box, months }` above `showReceipt`, with a comment saying that the
-period applies to the whole receipt and that nothing is remembered. It builds the DOM below with `el()`. All state
-lives in this closure; there are no module-level variables (E10).
-
+### `src/popup.js`: the warranty block (amendment 5)
+`renderWarranty(receipt, mainButton) → { box, isWarranty, months }`, above `showReceipt`. It builds this DOM with
+`el()`. All state lives in the closure; there are no module-level variables (E10).
 ```html
 <div id="warranty" class="warranty">
-  <label class="warranty-toggle"><input type="checkbox" id="warranty-on"> Гаранција</label>
+  <div class="add-as" role="radiogroup" aria-labelledby="add-as-label">
+    <span id="add-as-label" class="add-as-label">Додај као:</span>
+    <label><input type="radio" name="add-as" id="add-as-receipt" value="receipt" checked> Рачун</label>
+    <label><input type="radio" name="add-as" id="add-as-warranty" value="warranty"> Гаранција</label>
+  </div>
+  <!-- popup mode only: not created when IN_TAB -->
+  <p id="warranty-hint" class="warranty-hint">За рачун и гаранцију скенирај рачун двапут.</p>
   <div id="warranty-options" class="hidden">
     <select id="warranty-months" aria-label="Трајање гаранције">
       <option value="6">6 месеци</option>
@@ -410,125 +412,93 @@ lives in this closure; there are no module-level variables (E10).
            inputmode="numeric" placeholder="месеци" aria-label="Број месеци">
     <p id="warranty-end" aria-live="polite"></p>
     <p id="warranty-error" class="hidden" role="alert">Унеси број месеци од 1 до 120.</p>
-    <button type="button" id="add-warranty" class="secondary">Додај датум истека гаранције</button>
-    <!-- amendment 4: popup mode only (not created when IN_TAB) -->
-    <p id="warranty-hint" class="warranty-hint">За оба догађаја скенирај рачун двапут: једном за куповину, једном за истек гаранције.</p>
   </div>
 </div>
+<button id="add-calendar" class="primary">Додај у календар</button>
 ```
-Build the hint with
-`if (!IN_TAB) { const hint = el('p', 'warranty-hint', '<text above>'); hint.id = 'warranty-hint'; options.append(hint); }`
-after `#add-warranty` is appended. `update()` does not need to touch it, because it is shown and hidden together with
-`#warranty-options`.
-- Build the option labels from `WARRANTY_PRESETS` with a map in `popup.js`:
-  `const WARRANTY_OPTION_LABEL = { 6: '6 месеци', 12: '12 месеци', 24: '24 месеца', 36: '36 месеци' };`.
-- Build the error text from `MAX_WARRANTY_MONTHS`.
+- **Ids removed in amendment 5:** `#warranty-on` and `#add-warranty`. The `.warranty-toggle` class is gone too.
+- **Labels:** build the option labels with `const WARRANTY_OPTION_LABEL = { 6: '6 месеци', 12: '12 месеци', 24: '24 месеца', 36: '36 месеци' };`
+  and the error text from `MAX_WARRANTY_MONTHS`.
+- **`isWarranty()`** returns `warrantyRadio.checked`.
 - **`months()`**:
-  - returns `null` when `#warranty-on` is unchecked;
-  - when the select is `custom`, reads the field as a number (R12):
-    `const n = custom.valueAsNumber; return Number.isInteger(n) ? normalizeWarrantyMonths(n) : null;`.
-    An empty or unparsable field gives `NaN`, and therefore `null`;
-  - otherwise returns `Number(select.value)`.
-- **`update()`** runs on `change` of the checkbox and the select, and on `input` of the custom field:
-  - When the checkbox is off: hide `#warranty-options` and set `mainButton.disabled = false`.
-  - When it is on: show `#warranty-options`, and show `#warranty-custom` only when the select is `custom`.
-    - If `months()` is valid: hide the error, show `#warranty-end` with
-      `'Гаранција до: ' + formatWarrantyDate(end)`, adding `' (истекла)'` when `isWarrantyExpired(end)`, and enable
-      both buttons.
-    - If it is invalid: show the error, hide `#warranty-end` and disable both buttons (R12).
-- **Choosing "Друго…"**: prefill `#warranty-custom` with the preset that was selected just before (24 at first),
-  then focus it.
-- **`update()` and the button label (R14).** In the branch where the checkbox is on, `update()` also sets
-  `addWarranty.textContent = 'Додај датум истека гаранције'` before it sets `disabled`. Every change of the toggle,
-  preset or custom value therefore restores the label and enables the button (when the choice is valid).
-- **`#add-warranty` click** (R14, rewritten in amendment 4):
+  - returns `null` unless `isWarranty()`;
+  - for `custom`: `const n = custom.valueAsNumber; return Number.isInteger(n) ? normalizeWarrantyMonths(n) : null;`;
+  - otherwise `Number(select.value)`.
+- **`update()`** runs on `change` of both radios and the select, and on `input` of the custom field:
   ```js
-  addWarranty.addEventListener('click', async () => {
-    addWarranty.disabled = true;                     // a double click opens one form
-    try {
-      await chrome.tabs.create({ url: buildWarrantyCalendarUrl(receipt, months()), active: true });
-    } catch (err) {
-      addWarranty.disabled = false;
-      setStatus(err.message, 'error');
-      return;                                        // the popup stays open to show the error
+  const update = () => {
+    if (!isWarranty()) {                         // Рачун: the purchase event, as on main
+      options.classList.add('hidden');
+      mainButton.disabled = false;
+      return;
     }
-    // The popup (and Firefox for Android's full-screen page) closes, as after "Додај у календар";
-    // the other event takes a second scan (hint below).
-    if (!IN_TAB) { window.close(); return; }
-    // The full-tab page stays open: mark this choice as opened until it changes (update()).
-    addWarranty.textContent = '✓ Отворено у новој картици';
-    setStatus('Догађај за истек гаранције је отворен у новој картици.');
-  });
+    options.classList.remove('hidden');
+    custom.classList.toggle('hidden', select.value !== 'custom');
+    const n = months();
+    const end = n === null ? null : warrantyEndDate(receipt.dateTimeStr, n);
+    if (end) {
+      endText.textContent = 'Гаранција до: ' + formatWarrantyDate(end) + (isWarrantyExpired(end) ? ' (истекла)' : '');
+      endText.classList.remove('hidden');
+      error.classList.add('hidden');
+    } else {
+      endText.classList.add('hidden');
+      error.classList.remove('hidden');
+    }
+    mainButton.disabled = !end;
+  };
   ```
-  The button stays disabled after success in both modes. In popup mode the page closes anyway; in tab mode
-  `update()` re-enables it on the next change.
+- **Choosing "Друго…"**: prefill `#warranty-custom` with the preset selected just before (24 at first), then focus
+  it (unchanged).
+- **Switching back and forth.** Switching back to **Рачун** keeps the period state (hidden) for this receipt, so
+  switching to **Гаранција** again shows the same period. A new scan starts fresh (R15).
 
-Change `showReceipt(receipt, calendarUrl)` (`:84-96`):
-- Give the main button an id: `add.id = 'add-calendar'`.
-- Click handler (R13, R21):
-  ```js
+### `src/popup.js`: `showReceipt` and the one button (amendment 5)
+```js
+function showReceipt(receipt, calendarUrl) {
+  const add = el('button', 'primary', 'Додај у календар');
+  add.id = 'add-calendar';
   add.addEventListener('click', async () => {
     try {
-      const months = warranty?.months() ?? null;
-      await chrome.tabs.create({ url: months ? buildCalendarUrl(receipt, months) : calendarUrl });
+      // Built at click time: the purchase URL from the scan (as on main), or the expiry event.
+      const url = warranty?.isWarranty() ? buildWarrantyCalendarUrl(receipt, warranty.months()) : calendarUrl;
+      await chrome.tabs.create({ url });
     } catch (err) {
       setStatus(err.message, 'error');
       return;                                        // the popup stays open to show the error
     }
-    // (existing comment about desktop and Firefox for Android stays)
+    // Desktop closes the popup by itself when the new tab takes focus. Firefox for Android leaves
+    // it on top of the new tab, so close it to reveal the calendar. (Tab mode: the page stays.)
     if (!IN_TAB) window.close();
   });
-  ```
-- Before `replaceChildren`: `const warranty = transactionKind(receipt.transactionType) === 'sale' ? renderWarranty(receipt, add) : null;`.
-  Then `receiptEl.replaceChildren(...(warranty ? [warranty.box] : []), add, <journal or summary>)`.
-- `add.focus()` stays.
-- `handleImage()` stays as it is. It still calls `buildCalendarUrl(receipt)` at `:191`, so an unreadable date fails
-  before the review step, exactly as today (E3).
 
-Paste listener (R20) and tab-mode drag and drop (R22). Amendment 3 renames the helper from `isEditableTarget` to
-`isTextEntryTarget` and narrows it to text-entry fields. Put the helper and its constant just above the paste
-listener. In each listener the guard is the first statement; the rest of each listener is unchanged.
-```js
-// Inputs that take typed text. Checkboxes, radio buttons, selects and buttons are not among them,
-// so a paste or drop while one of those has focus still scans the image.
-const TEXT_INPUT_TYPES = ['text', 'number', 'search', 'email', 'url', 'tel', 'password'];
-
-// A paste or text drag into a text field (the warranty's months) is typing, not a receipt image:
-// leave it to the browser.
-function isTextEntryTarget(target) {
-  if (!(target instanceof Element)) return false;
-  if (target.isContentEditable || target instanceof HTMLTextAreaElement) return true;
-  return target instanceof HTMLInputElement && TEXT_INPUT_TYPES.includes(target.type);
+  const warranty = transactionKind(receipt.transactionType) === 'sale' ? renderWarranty(receipt, add) : null;
+  receiptEl.replaceChildren(
+    ...(warranty ? [warranty.box] : []),
+    add,
+    receipt.preHtml ? renderJournal(receipt.preHtml) : renderSummary(receipt),
+  );
+  receiptEl.classList.remove('hidden');
+  add.focus();
 }
-
-document.addEventListener('paste', e => {
-  if (isTextEntryTarget(e.target)) return;
-  // …existing lines unchanged…
-});
-
-// inside `if (IN_TAB) { … }`:
-const carriesFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
-document.addEventListener('dragover', e => {
-  if (isTextEntryTarget(e.target) && !carriesFiles(e)) return;   // text dragged into or within a text field
-  e.preventDefault();
-  drop.classList.add('over');
-});
-document.addEventListener('drop', e => {
-  if (isTextEntryTarget(e.target) && !carriesFiles(e)) return;
-  e.preventDefault();
-  // …existing lines unchanged…
-});
 ```
-The `dragleave` handler is unchanged. Files dropped on a text field are still handled by the page (A21). Left to
-the browser, a file drop would open the file and replace the extension page.
+- If `months()` is `null` (only possible if the disabled button were clicked anyway),
+  `buildWarrantyCalendarUrl` throws `Неисправан период гаранције: null`, which is shown as an error. No wrong date is
+  ever opened.
+- `handleImage()` is unchanged. It still calls `buildCalendarUrl(receipt)`, so an unreadable date fails before the
+  review step (E3).
+- The paste and drag guards (`TEXT_INPUT_TYPES`, `isTextEntryTarget`, `carriesFiles`) are unchanged from amendment
+  3. Radio inputs are not text-entry fields, so they never block paste or drop.
 
-### `src/popup.css`
-Add a section after "Receipt" (`:101-103`), using the existing variables:
+### `src/popup.css` (amendment 5)
+Replace the `.warranty-toggle` rules and the `#warranty-options button` rule. Keep the rest of the Warranty section.
 ```css
 /* ── Warranty ─────────────────────────────────────────── */
 .warranty { margin: 0 0 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
-.warranty-toggle { display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
-.warranty-toggle input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.add-as { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
+.add-as-label { font-weight: 600; }
+.add-as label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.add-as input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.warranty-hint { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
 #warranty-options { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
 #warranty-options select, #warranty-options input {
   padding: 8px 10px; font: inherit; color: var(--text); background: var(--bg);
@@ -537,51 +507,50 @@ Add a section after "Receipt" (`:101-103`), using the existing variables:
 #warranty-options input { width: 7em; }
 #warranty-end, #warranty-error { flex-basis: 100%; margin: 0; font-size: 13px; }
 #warranty-error { color: var(--error); }
-#warranty-options button { margin: 0; }
-.warranty-hint { flex-basis: 100%; margin: 0; font-size: 12px; color: var(--muted); }   /* amendment 4 */
-body.mobile .warranty-toggle { min-height: 44px; font-size: 16px; }
+body.mobile .add-as label { min-height: 44px; font-size: 16px; }
 body.mobile #warranty-options select, body.mobile #warranty-options input { min-height: 44px; font-size: 16px; }
 ```
-`.hidden` (`:47`, `!important`) overrides `display: flex`. `body.mobile button` (`:45`) already makes
-`#add-warranty` at least 44px tall.
 
-### Documentation texts (R18)
-- **`README.md`**, section "Use": add this paragraph after "The popup shows the receipt as it is printed…":
-  > **Warranty.** For a sale, tick **Гаранција** above the button and choose 6, 12, 24 or 36 months, or **Друго…**
-  > for your own number of months (1–120). The end date, counted from the receipt's date, is added to the event as
-  > `🛡 Гаранција до: 7.11.2028.`. **Додај датум истека гаранције** opens a different form: an all-day event on that
-  > date, titled `Гаранција истиче: Merchant`. Use either button, or both. Each opens its form in front, and in the
-  > toolbar popup (and on Android) it closes the popup. To add both events there, scan the receipt twice: once for
-  > the purchase, once for the warranty end. The popup says so while the warranty is on. In a full tab (desktop,
-  > **Изабери слику…**) the page stays open, and both buttons work one after the other. Nothing is remembered; the
-  > next receipt starts with the warranty off. The button on the receipt page has no warranty option; use the
-  > toolbar popup there.
+### Documentation texts (R18, amendment 5)
+- **`README.md`**, section "Use": replace the current "Warranty" paragraph with:
+  > **Warranty.** For a sale, the popup asks **Додај као:** **Рачун** (the purchase event, as before) or
+  > **Гаранција**. With **Гаранција**, choose 6, 12, 24 or 36 months, or **Друго…** for your own number of months
+  > (1–120); the popup shows the end date, counted from the receipt's date. **Додај у календар** then opens an
+  > all-day event on that date instead of the purchase. It is titled `Гаранција истиче: Merchant` and carries
+  > `🛡 Гаранција до: 7.11.2028.`, the receipt number and date, the items and the receipt link. In the toolbar popup
+  > (and on Android) the popup closes after the click, so to add both events scan the receipt twice: once as
+  > **Рачун**, once as **Гаранција**. In a full tab (desktop, **Изабери слику…**) the page stays open: switch the
+  > choice and click again. Nothing is remembered; the next receipt starts with **Рачун**. The button on the receipt
+  > page has no warranty option; use the toolbar popup there.
 
-  **(Changed, amendment 4.)** This text replaces the earlier "background tab" and "Open it before **Додај у
-  календар**" wording, including the toolbar-popup sentence added in `c642a63`.
-
-  Under "Limitations", add both bullets:
-  > - In the toolbar popup one scan gives one event: the purchase or the warranty end. Scan again for the other.
-  >   *(added, amendment 4)*
+  Under "Limitations", the two warranty bullets become:
+  > - In the toolbar popup one scan adds one event, the purchase or the warranty end; scan again for the other.
   > - One warranty period per receipt. Save the warranty event to a calendar other than the Receipt Scanner's
   >   **Receipts** calendar. Once its date has passed, the Receipt Scanner shows any event in that calendar as a
   >   receipt: without an amount, under an unknown payment method, and counted in the month's number of receipts.
-- **`docs/privacy.html`**:
-  - In "What it sends", in the Google Calendar item, replace "The receipt details (the list above, and the receipt
-    link)" with "The receipt details (the list above, the receipt link, and the warranty end date if you set one)".
-    Add the sentence: "“Додај датум истека гаранције” opens a second form the same way."
-  - In "What it stores", add after "keeps no history of receipts.": "The warranty period you choose is not saved
-    either."
-  - Change "Last updated" to the date of the change.
-- **`store/firefox/fields/privacy-policy.txt`**: the same two edits, in its shorter wording.
-- **`docs/index.html`**, "How it works" step 2: change it to "Check the receipt, which is shown as it was printed,
-  and set a warranty period if you want its end date in the calendar."
-- **Both store descriptions** (`store/chrome/fields/store-listing-description.txt`,
-  `store/firefox/fields/description.txt`):
-  - Add to МОГУЋНОСТИ: `• Гаранција: изаберите трајање (6, 12, 24, 36 месеци или друго) и датум истека се уписује у догађај; посебно дугме отвара целодневни догађај на дан истека` **(changed, amendment 4)**
-  - Add to FEATURES: `• Warranty: pick a period (6, 12, 24 or 36 months, or your own) and the end date goes into the event; a separate button opens an all-day event on the day it ends` **(changed, amendment 4)**
-  - `docs/privacy.html`, `store/firefox/fields/privacy-policy.txt` and `docs/index.html` need no change for
-    amendment 4. "Opens a second form the same way" stays true.
+- **`docs/privacy.html`**, "What it sends", Google Calendar item. Replace its text after the `<b>…</b>
+  (<code>calendar.google.com</code>):` part with:
+  > when you click “Додај у календар”, a new tab opens Google Calendar's “new event” form. The receipt details (the
+  > list above, and the receipt link) are part of that link, so Google receives them in that request. If you chose
+  > “Гаранција”, the form is instead an all-day event on the day the warranty ends, with the receipt number, date,
+  > items and link. The event is saved only if you press Save, in the Google account you are signed in to, and is
+  > then covered by Google's privacy policy.
+
+  This removes "and the warranty end date if you set one" and the "“Додај датум истека гаранције” opens a second
+  form" sentence. "What it stores" keeps "The warranty period you choose is not saved either." Set "Last updated"
+  to the date of the change.
+- **`store/firefox/fields/privacy-policy.txt`**: the Google Calendar line becomes:
+  > - To Google Calendar (calendar.google.com): when you click "Додај у календар", a new tab opens Google Calendar's
+  >   new-event form. The receipt details and the receipt link are part of that link, so Google receives them in
+  >   that request. If you chose "Гаранција", the form is instead an all-day event on the day the warranty ends,
+  >   with the receipt number, date, items and link. The event is saved only if you press Save, in the Google
+  >   account you are signed in to.
+- **`docs/index.html`**, "How it works" step 2:
+  > Check the receipt, which is shown as it was printed. For a sale you can add it as a warranty instead: an all-day
+  > event on the day the warranty ends.
+- **Both store descriptions** replace the warranty bullets:
+  - МОГУЋНОСТИ: `• Гаранција: уместо куповине додајте целодневни догађај на дан истека гаранције (6, 12, 24, 36 месеци или друго)`
+  - FEATURES: `• Warranty: instead of the purchase, add an all-day event on the day the warranty ends (6, 12, 24 or 36 months, or your own)`
 
 ## Edge cases
 - **E1.** The end day does not exist in the target month: clamp to the month's last day.
@@ -594,214 +563,172 @@ body.mobile #warranty-options select, body.mobile #warranty-options input { min-
 - **E2.** The period crosses into another year, so the year rolls over:
   - `15.11.2026.` + 2 → `15.1.2027.`
   - `31.3.2026.` + 120 → `31.3.2036.`
-  - An all-day event on `31.12.2027.` has `dates=20271231/20280101`.
+  - an all-day event on `31.12.2027.` has `dates=20271231/20280101`.
 - **E3.** The receipt date cannot be parsed: the popup shows `Датум рачуна није препознат: …` as an error and no
-  review step (no warranty block), exactly as today. Both builders throw that message even when months are given.
-  H15 checks the popup side.
-- **E4.** Refund or other non-sale receipts (`↩`/`🏷`):
-  - The warranty block is not rendered, and "Додај у календар" opens today's URL.
-  - `buildCalendarUrl(nonSale, 24)` returns the same string as `buildCalendarUrl(nonSale)`.
-  - `buildWarrantyCalendarUrl(nonSale, 24)` throws `Гаранција се додаје само за рачун продаје.`
-- **E5.** The warranty has already expired (an old receipt): the preview reads `Гаранција до: … (истекла)`. Both
-  buttons stay enabled, and the description line has no "expired" marker.
-- **E6.** Invalid periods.
+  review step (no block), as on `main`. `buildWarrantyCalendarUrl` throws the same message.
+- **E4 (changed, A5).** Refund or other non-sale receipts: there is no block, and "Додај у календар" opens
+  `main`'s URL. `buildWarrantyCalendarUrl(nonSale, 24)` throws `Гаранција се додаје само за рачун продаје.`
+- **E5 (changed, A5).** The warranty has already expired (an old receipt) and **Гаранција** is selected: the preview
+  reads `Гаранција до: … (истекла)`. The button stays enabled and opens an all-day event in the past (F5).
+- **E6 (changed, A5).** Invalid periods.
   - In the pure functions (R4): `''`, `0`, `-3`, `2.5`, `'1e2'`, `'+24'`, `'abc'`, `121` and `'999999'` give
     `null`; `120` and `' 12 '` are valid.
-  - In the popup's custom field (R12), the field's numeric value counts:
-    - empty, `abc` (no number), `0`, `-3`, `2.5`, `121` and `999999` are invalid: error text, both buttons
-      disabled, and no URL is built;
+  - In the custom field, with **Гаранција** selected:
+    - empty, `abc`, `0`, `-3`, `2.5`, `121` and `999999` show the error, disable `#add-calendar`, and build no URL;
     - `24.0` is 24;
-    - `1e2` is 100 and `+24` is 24, wherever the browser reports a number for them; otherwise they are invalid.
-- **E7.** Long receipts at the URL limit with a warranty: both URLs stay at most 6000 characters, and item lines are
-  cut with `… +N`. The purchase event keeps its `🛡`, `💰` and `🔗` lines; the expiry event keeps its `🛡`, `📋`,
-  `🕐` and `🔗` lines and never has a `💰` line.
-- **E8.** The choice changes after the review is shown (on, preset, custom, off): each click builds its URL from the
-  current state. Turning the warranty off again gives the R2 byte-identical URL.
-- **E9.** A new scan replaces the receipt: the new block starts unchecked, with 24 selected and the custom field
-  hidden. Exactly one `#warranty` exists in the document.
+    - `1e2` and `+24` count as 100 and 24 wherever the browser reports a number for them.
+- **E7 (changed, A5).** Long receipts with **Гаранција**: the expiry URL stays at most 6000 characters, and item lines
+  are cut with `… +N`. The `🛡`, `📋`, `🕐` and `🔗` lines are kept, and there is never a `💰` line. Long receipts with
+  **Рачун** behave as on `main`.
+- **E8 (changed, A5).** The choice or the period changes after the review is shown: each click builds its URL from the
+  current state. **Рачун** always gives `main`'s byte-identical URL, however often the choice was switched.
+- **E9 (changed, A5).** A new scan replaces the receipt: the new block starts with **Рачун**, 24 months and the custom
+  field hidden, and exactly one `#warranty` exists in the document.
 - **E10.** A scan is aborted, or a second scan starts while the first runs: only the newest run reaches
-  `showReceipt` (`currentRun`, `src/popup.js:158-170`). The warranty state is local to that call, so it always
-  belongs to the receipt shown. When the older run's fetch finishes later, it shows no error and does not reset or
-  replace the block the user is working with. H14 checks this.
-- **E11.** Timezone and DST: the results do not change when the machine runs in another timezone.
+  `showReceipt`. The block's state is local to that call. The older run shows no error and does not replace the
+  block the user is working with.
+- **E11.** Timezone and DST: the results do not change in another machine timezone.
   - `1.1.2026. 00:10:00` + 6 → `1.7.2026.`
   - `31.12.2026. 23:59:59` + 1 → `31.1.2027.`
-  - `29.3.2026. 02:30:00` (the spring DST change) + 6 → `29.9.2026.`
-  - `25.10.2026. 02:30:00` (the autumn DST change) + 12 → `25.10.2027.`
-- **E12.** An empty, missing or whitespace-only `merchantName` (for example, no journal on the page): the warranty
-  event title is `Гаранција истиче`, with no colon and no trailing spaces. Leading and trailing spaces around a
-  real name are dropped (`'  KAFE  '` → `Гаранција истиче: KAFE`).
-- **E13.** The Receipt Scanner PWA reads a purchase event that has the `🛡` line: by code reading
-  (`receipt/js/app.js:405-453`) every field it reads (merchant, address, PIB, items, total, VAT, payment, link)
-  comes out the same as without the line. This is a residual risk, because the deployed PWA may differ from the
-  local clone.
-- **E14.** The expiry event is saved into the PWA's **Receipts** calendar. Once its date has passed, the PWA lists
-  it and counts it in the monthly report. The PWA counts every event in that calendar (Context), so no
-  description content can prevent this. The spec limits the damage:
-  - the title never contains `' — '`, because every em dash in the merchant name becomes `-` (R9). The PWA
-    therefore reads the amount as `''` → 0, and the monthly total does not change;
-  - there is no `💳` line (R19), so a real payment method's count does not grow. The event goes to "unknown
-    payment";
-  - there is no `💰` or `🧾` line, so the PWA's receipt card shows no total or VAT for it.
+  - `29.3.2026. 02:30:00` + 6 → `29.9.2026.`
+  - `25.10.2026. 02:30:00` + 12 → `25.10.2027.`
+- **E12.** An empty, missing or whitespace-only `merchantName`: the expiry title is `Гаранција истиче`. Spaces at the
+  ends of a real name are dropped.
+- **E13 (changed, A5).** The Receipt Scanner PWA reads a purchase event: purchase events are byte-identical to
+  `main`'s again, so the PWA reads them exactly as before. The earlier risk from the `🛡` line in the purchase event
+  is gone.
+- **E14.** The expiry event saved into the PWA's **Receipts** calendar is listed and counted once its date has
+  passed (Context). The damage is limited:
+  - the title never contains `' — '`, so the amount reads as 0;
+  - there is no `💳` line, so the event goes to "unknown payment";
+  - there is no `💰` or `🧾` line.
 
-  The receipt count and the average still include the event. That residual risk is documented in the README
-  (save the event to another calendar), and Open question 7 covers it.
-- **E15 (rewritten, amendment 4).** In popup mode, either button opens its form in front and closes the popup.
-  - The other event takes a second scan of the same receipt; the hint (R23) says so.
-  - Whichever button is used, the date is not lost: the purchase event carries the `🛡` line, and the expiry
-    event is on that date.
-  - Using only one button is a valid outcome.
-  - In tab mode the page stays open, and the user can come back to it and use the other button.
-- **E16 (rewritten, amendment 4).** "Додај датум истека гаранције" is clicked twice, or double-clicked: only one form
-  opens, because the button is disabled from the first click.
-  - In popup mode the popup then closes.
-  - In tab mode the button shows `✓ Отворено у новој картици` until the period changes or the warranty is turned
-    off and on, which enables it again for the new choice.
-  - A failed open re-enables it at once, in both modes.
+  The count and the average still include it. The README advises another calendar (Open question 7).
+- **E15 (changed, A5).** In popup mode one scan adds one event. A user who wants both scans the same receipt again
+  and picks the other option; the hint (R23) says so. **Рачун** alone or **Гаранција** alone is a valid outcome. In
+  tab mode the user switches the choice and clicks again.
+- **E16 (changed, A5).** "Додај у календар" is double-clicked: it behaves as on `main` (no extra guard). In popup
+  mode the popup closes after the first open. In tab mode a double click can open two identical forms, as on
+  `main`.
 - **E17.** The `isWarrantyExpired` boundary uses Belgrade dates:
-  - end `7.11.2028.`, now `2028-11-07T22:59:59Z` (23:59:59 Belgrade): not expired;
-  - end `7.11.2028.`, now `2028-11-07T23:00:00Z` (8 Nov 00:00 Belgrade): expired;
-  - end `1.7.2027.`, now `2027-07-01T21:59:59Z` (CEST, Belgrade still 1 July): not expired;
-  - end `1.7.2027.`, now `2027-07-01T22:00:00Z`: expired.
-- **E18.** Pasting into `#warranty-custom` (or any other text-entry field):
-  - Text (`18`) is pasted into the field as usual. The preview updates through the `input` event, and there is no
-    `У клипборду нема слике.` error.
-  - An image pasted there does nothing: no scan, and the receipt and the warranty choice stay.
-  - While `#warranty-on` or `#warranty-months` has focus (just ticked or changed), a pasted image scans as on
-    `main`, and pasted text shows `У клипборду нема слике.` (R20).
-  - Pasting with no field focused still scans an image, or shows the error for non-image content.
-- **E19.** `chrome.tabs.create` or `buildCalendarUrl` fails when "Додај у календар" is clicked: the error message is
-  shown, the popup stays open, and the user can try again (R21).
-- **E20.** Drag and drop in tab mode near the warranty block:
-  - Text dragged into `#warranty-custom`, or selected there and dragged within it, is handled by the browser. There
-    is no `Превуци фајл слике.` error and no drop highlight.
-  - An image file dropped on `#warranty-on`, `#warranty-months`, `#warranty-custom` or anywhere else starts a scan.
-    The page never navigates to the file.
-  - Text dropped outside a text-entry field still shows `Превуци фајл слике.` (R22).
+
+  | End date | Now (UTC) | Belgrade time | Expired |
+  |---|---|---|---|
+  | `7.11.2028.` | `2028-11-07T22:59:59Z` | 7 Nov, 23:59:59 | no |
+  | `7.11.2028.` | `2028-11-07T23:00:00Z` | 8 Nov, 00:00 | yes |
+  | `1.7.2027.` | `2027-07-01T21:59:59Z` | 1 July (CEST) | no |
+  | `1.7.2027.` | `2027-07-01T22:00:00Z` | 2 July | yes |
+- **E18 (changed, A5).** Pasting while **Гаранција** and "Друго…" are selected:
+  - text pasted into `#warranty-custom` goes into the field, the preview updates, and there is no error;
+  - an image pasted there does nothing;
+  - with focus on either radio option, or on `#warranty-months`, a pasted image scans as on `main`, and pasted text
+    shows `У клипборду нема слике.`
+- **E19 (changed, A5).** `chrome.tabs.create` or `buildWarrantyCalendarUrl` fails when "Додај у календар" is clicked:
+  the error message is shown, the popup stays open, and the user can try again (R21).
+- **E20 (changed, A5).** Drag and drop in tab mode:
+  - text dragged into or within `#warranty-custom` is handled by the browser;
+  - an image file dropped on either radio option, the select, the custom field or anywhere else scans;
+  - text dropped outside a text-entry field shows `Превуци фајл слике.`
+- **E21 (new, A5).** **Гаранција** with an invalid custom period, then **Рачун**: `#add-calendar` is enabled at once
+  and opens `main`'s purchase URL. Back to **Гаранција**, the invalid value is still there, so the error shows again
+  and the button is disabled.
 
 ## Test plan
-The unit tests go in `test/calendar-url.test.js`, with the existing `SALE` literal (`:10-16`) and style. The popup UI
-has no browser automation in this repo, so UI rows are manual checks with `test/harness.html` (served with
-`python3 -m http.server 8766`) and in real browsers. The fixture receipt is dated `15.10.2026. 10:15:30`.
+- **Unit tests** go in `test/calendar-url.test.js`, with the existing `SALE`, `REFUND`, `OTHER` and `LONG` literals.
+- **UI rows** are manual checks with `test/harness.html` (`python3 -m http.server 8766`) and in real browsers.
+- The fixture receipt is dated `15.10.2026. 10:15:30`, so with 24 months its warranty ends `15.10.2028.`.
+- In console steps, `close stub` means
+  `window.close = () => { window.__closed = true; }; const c0 = chrome.tabs.create; chrome.tabs.create = async o => { window.__opts = o; return c0(o); };`.
 
 | Test | Covers | Type | File |
 |---|---|---|---|
-| T1 `buildCalendarUrl(SALE)` equals `buildCalendarUrl(SALE, undefined)` and `(SALE, null)`. Its keys are `['action','text','dates','ctz','details','location']`; its `details` lines `deepEqual` the 13 expected lines of today's format (merchant … `🔗 …`) | R2, R8 | unit | `test/calendar-url.test.js` |
-| T2 `normalizeWarrantyMonths` table: the valid and `null` examples from Design | R4, E6 | unit | `test/calendar-url.test.js` |
-| T3 `warrantyEndDate('7.11.2026. 13:25:06', m)` for 6/12/24/36 → `7.5.2027`, `7.11.2027`, `7.11.2028`, `7.11.2029` (as objects) | R3, R5 | unit | `test/calendar-url.test.js` |
-| T4 Month-end clamping table (E1) | R5, E1 | unit | `test/calendar-url.test.js` |
-| T5 Year rollover table (E2), including the all-day `dates` for `31.12.2026.` + 12 | R5, R9, E2 | unit | `test/calendar-url.test.js` |
-| T6 `warrantyEndDate` returns `null` for `'nonsense'` and for months `0`, `121`, `'abc'`, `null` | R5 | unit | `test/calendar-url.test.js` |
-| T7 `formatWarrantyDate({year:2028,month:11,day:7})` → `'7.11.2028.'`; `{2027,2,1}` → `'1.2.2027.'` | R7 | unit | `test/calendar-url.test.js` |
-| T8 `buildCalendarUrl(SALE, 24)` details: `lines.at(-2) === '🛡 Гаранција до: 7.11.2028.'`, `lines.at(-1)` starts with `🔗`; removing that line gives exactly the T1 lines; the line's first code point is U+1F6E1 and the second char is a space; `text`/`dates`/`location` equal T1's | R7, R8, R13 | unit | `test/calendar-url.test.js` |
-| T9 With `vatTotal: ''` the `🛡` line comes directly after `💰 Укупно` and before `🔗` | R7 | unit | `test/calendar-url.test.js` |
-| T10 Refund and `АВАНС ПРОДАЈА`: `buildCalendarUrl(x, 24) === buildCalendarUrl(x)`, with no `🛡` line | R7, R8, E4 | unit | `test/calendar-url.test.js` |
-| T11 `buildCalendarUrl(SALE, v)` throws `/Неисправан период гаранције/` for `0`, `-1`, `121`, `2.5`, `'abc'`, `''` | R8, E6 | unit | `test/calendar-url.test.js` |
-| T12 `dateTimeStr: 'nonsense'` with months 24: both builders throw `/Датум рачуна/` | R8, R9, E3 | unit | `test/calendar-url.test.js` |
-| T13 `buildWarrantyCalendarUrl(SALE, 24)`: keys in R9 order, `text` `'Гаранција истиче: KAFE PRIMER DOO'`, `dates` `'20281107/20281108'`, `ctz` `'Europe/Belgrade'`, `location` `SALE.address`, `details === buildWarrantyDescription(SALE, SALE.items.length, 24)`; no `details` line starts with `💰`, `💳` or `🧾` **(changed by the amendment)** | R9, R19 | unit | `test/calendar-url.test.js` |
-| T14 `buildWarrantyCalendarUrl({...SALE, merchantName: ''}, 24)` gives the `text` `'Гаранција истиче'` | R9, E12 | unit | `test/calendar-url.test.js` |
-| T15 `buildWarrantyCalendarUrl` throws `/Неисправан период гаранције/` for `null`, `undefined`, `0`, `121`, and `/само за рачун продаје/` for a refund | R9, E4 | unit | `test/calendar-url.test.js` |
-| T16 150 long items (as at `:48-56`) with months 24: both URLs have length ≤ 6000, and their `details` contain `… +N`, the `🛡` line and, last, `🔗 https://suf.purs.gov.rs/`. The purchase URL also keeps `💰 Укупно: 750,00 RSD`, and its non-item lines equal `buildReceiptDescription(LONG, 0, 24)`'s. The expiry URL has no `💰` line, and its non-item lines equal `buildWarrantyDescription(LONG, 0, 24)`'s (`🛡`, `📋`, `🕐`, `🛒`, `🔗`) **(changed)** | R10, R19, E7 | unit | `test/calendar-url.test.js` |
-| T17 The E11 cases. The whole suite also passes under `TZ=America/Los_Angeles` and `TZ=Pacific/Kiritimati` (Acceptance criteria) | R6, E11 | unit | `test/calendar-url.test.js` |
-| T18 `isWarrantyExpired` with the four E17 instants | R11, E5, E17 | unit | `test/calendar-url.test.js` |
-| T19 Exports: `WARRANTY_PRESETS` deepEqual `[6,12,24,36]`, `DEFAULT_WARRANTY_MONTHS === 24`, `MAX_WARRANTY_MONTHS === 120`; all eight functions, including `buildWarrantyDescription`, are `typeof 'function'` **(changed)** | R3, R4, R19 | unit | `test/calendar-url.test.js` |
-| T21 **(new)** `buildWarrantyDescription(SALE, SALE.items.length, 24).split('\n')` `deepEqual` the 7 lines in Design. With `{...SALE, items: []}` the item line is `(no items parsed)`. With period `0` or a refund there is no `🛡` line. For SALE (which has cashier, payment, VAT and PIB) no line starts with `💳`, `💰`, `🧾`, `👤` or `PIB:`, and no line equals `SALE.merchantName` or `SALE.address`. For `LONG` and any `itemLimit` the `• `/`… +N` lines equal those of `buildReceiptDescription(LONG, itemLimit)` | R19, E14 | unit | `test/calendar-url.test.js` |
-| T22 **(new)** Expiry title with em dashes: merchant `'ALFA — BETA DOO'` → `'Гаранција истиче: ALFA - BETA DOO'`, `'A—B'` → `'Гаранција истиче: A-B'`, `'X — Y — 5'` → `'Гаранција истиче: X - Y - 5'`. Each `text` has `lastIndexOf(' — ') === -1`. The purchase title is unchanged (`'ALFA — BETA DOO — 750,00 RSD'`) | R9, E14 | unit | `test/calendar-url.test.js` |
-| T23 **(new)** `isWarrantyExpired` does not depend on `.format()`: with `t.mock.getter(Intl.DateTimeFormat.prototype, 'format', () => () => '11/7/2028')` (`format` is a getter on the prototype, so `mock.method` does not apply) the four E17 cases give the same results as T18, and the mock's `callCount()` is 0 | R11, E17 | unit | `test/calendar-url.test.js` |
-| T24 **(new)** R8 on non-sale receipts: for `REFUND` and `OTHER` (`АВАНС ПРОДАЈА`), `buildCalendarUrl(x, v)` throws exactly `'Неисправан период гаранције: ' + v` for `v` in `0`, `-1`, `121`, `2.5`, `'abc'`, `''`, `NaN`, while `buildCalendarUrl(x, 24) === buildCalendarUrl(x)` | R8, E4, E6 | unit | `test/calendar-url.test.js` |
-| T25 **(new, amendment 2)** Trimmed expiry title. The `text` of `buildWarrantyCalendarUrl({...SALE, merchantName: m}, 24)`: `'   '` and `' \t\n'` → `'Гаранција истиче'`; `undefined` → `'Гаранција истиче'`; `'  KAFE PRIMER DOO  '` → `'Гаранција истиче: KAFE PRIMER DOO'`; `'  ALFA — BETA  '` → `'Гаранција истиче: ALFA - BETA'`. No `text` ends with whitespace or `':'`. `details` and `location` are the same as for `SALE` | R9, E12 | unit | `test/calendar-url.test.js` |
-| T20 Byte-identity against `main`: the Acceptance criteria script compares old and new `buildCalendarUrl` for a sale, a refund, an `other` type and a 150-item receipt | R2 | integration (script) | n/a (command) |
-| H1 `harness.html?scan`: `#warranty` is present, `#warranty-on` unchecked, `#warranty-options` hidden. Click `#add-calendar`: `__opened[0]` has no `🛡` and equals `buildCalendarUrl(parseReceiptHtml(...))` run in the console | R1, R2, R13 | integration (manual, harness) | `test/harness.html` |
-| H2 Tick the box: the select shows `24 месеца`, `#warranty-end` reads `Гаранција до: 15.10.2028.`, and `#add-warranty` is visible. Click `#add-calendar`: the details contain `🛡 Гаранција до: 15.10.2028.` | R3, R11, R13 | integration (manual, harness) | `test/harness.html` |
-| H3 Choose 6: the preview reads `15.4.2027.` and the URL carries it. Untick, then click Add: the URL equals H1's | R13, E8 | integration (manual, harness) | `test/harness.html` |
-| H4 Choose `Друго…`: the input is shown, prefilled `24` and focused. Typing `0`, `2.5` or `121`, or clearing the field, shows `Унеси број месеци од 1 до 120.` and disables both buttons. Typing `18` gives `Гаранција до: 15.4.2028.` and enables them | R3, R12, E6 | integration (manual, harness) | `test/harness.html` |
-| H5 **(rewritten, amendment 4)** Popup mode, `harness.html?scan`. Tick the warranty (24), then in the console run `window.close = () => { window.__closed = true; }; const c = chrome.tabs.create; chrome.tabs.create = async o => { window.__opts = o; return c(o); };`. Click `#add-warranty`. `__opened` gets one URL with `dates=20281015/20281016` and the title `Гаранција истиче: KAFE PRIMER DOO`. Its `details` start with `🛡 Гаранција до: 15.10.2028.`, end with the `🔗` line, and have no `💰`, `💳` or `🧾` line. `__opts.active === true` and `window.__closed === true`. The status line shows no message | R9, R14, R19 | integration (manual, harness) | `test/harness.html` |
-| H6 Set a warranty, then click `#scan-tab` again: exactly one `#warranty`, unchecked, 24 selected, custom hidden | R15, E9, E10 | integration (manual, harness) | `test/harness.html` |
-| H7 `harness.html?scan&refund` (the test-writer adds the switch: the portal stand-in replaces `ПРОМЕТ ПРОДАЈА` with `ПРОМЕТ РЕФУНДАЦИЈА` in the fixture HTML): no `#warranty`, and Add works as before | R1, E4 | integration (manual, harness) | `test/harness.html` |
-| H8 An old receipt: in the console, `isWarrantyExpired` is true for 6 months from `15.10.2020.`. In the harness, with the fixture date edited to `15.10.2020. 10:15:30` in the console stand-in, the preview ends with ` (истекла)` and the buttons are enabled | R11, E5 | integration (manual, harness) | `test/harness.html` |
-| H9 Chrome DevTools with an Android user agent at 360×740, `harness.html?tab&scan`: `body.mobile`; the checkbox row, select, input and button are each at least 44px tall; no horizontal scroll. Repeat at 340px (popup) and with `prefers-color-scheme: dark` | R16 | integration (manual, harness) | `test/harness.html` |
-| H10 **(rewritten, amendment 4)** Real browsers: Chrome desktop popup, Firefox desktop popup, Firefox for Android (161 or newer). (1) Scan a sale receipt, tick the warranty (24) and read the hint. Click `#add-warranty`: the all-day expiry form opens in front, and the popup closes. (2) Scan the same receipt again, tick the warranty and click `#add-calendar`: the purchase form opens in front with the `🛡` line, and the popup closes. (3) Each button alone, after a fresh scan, also works. (4) Desktop full tab (`Изабери слику…`, choose an image): `#add-warranty` opens the expiry form in front, and the page stays open. Back on the page, the button shows `✓ Отворено у новој картици` and there is no hint; `#add-calendar` then opens the purchase form | R13, R14, R16, R23, E15 | integration (manual) | n/a |
-| H11 On a real receipt page the floating button opens the same event as on `main`, with no warranty UI | R17 | integration (manual) | n/a |
-| H12 Copy the T8 `details` and run the PWA's `eventToReceipt({description})` (`receipt/js/app.js:405`) in a browser console: the result equals the one for the T1 `details`. Run its `parseSummary` on the T22 titles: total `''` for each. Its `_matchesFilter`-style payment lookup on the H5 `details` finds no `💳` line **(changed)** | E13, E14 | integration (manual) | n/a |
-| H13 **(new)** Custom field numeric value, in Chrome and Firefox, `harness.html?scan`, warranty on, `Друго…`: `24.0` → `Гаранција до: 15.10.2028.`, buttons enabled; `1e2` → `Гаранција до: 15.2.2035.` (or the error, if the browser reports no number); `+24` → `15.10.2028.` or the error, likewise (write down which); `2.5` and an empty field → the error and both buttons disabled. With `24.0`, `#add-calendar` opens a URL with `🛡 Гаранција до: 15.10.2028.` | R12, E6 | integration (manual, harness) | `test/harness.html` |
-| H14 **(new)** Overlapping scans (E10). Open `harness.html?scan`, wait for the receipt, and in the console run `const f = window.fetch; let n = 0; window.fetch = (u, o) => new Promise(r => setTimeout(r, n++ === 0 ? 3000 : 0)).then(() => f(u, o)); handleImage(FIXTURE.receiptUrl); setTimeout(() => handleImage(FIXTURE.receiptUrl), 300);`. As soon as the receipt reappears (the second run), tick `#warranty-on` and choose 6. After 4 s: exactly one `#warranty`, still ticked with 6; the status line is empty (no error from the aborted first run). `#add-calendar` opens one URL, with `🛡 Гаранција до: 15.4.2027.` | E10, E9 | integration (manual, harness) | `test/harness.html` |
-| H15 **(new)** Unreadable date in the popup (E3). Open plain `harness.html`. In the console run `const f = window.fetch; window.fetch = (u, o) => f(u, o).then(r => r.text()).then(t => new Response(t.replace(/(id="sdcDateTimeLabel">)[^<]*/, '$1nonsense'), { headers: { 'Content-Type': 'text/html; charset=utf-8' } })); handleImage(FIXTURE.receiptUrl);`. The status line shows `Датум рачуна није препознат: nonsense` as an error, `#receipt` stays hidden, `document.getElementById('warranty') === null`, and `__opened` is empty | E3 | integration (manual, harness) | `test/harness.html` |
-| H16 **(new, amendment 2)** Paste into the field. In `harness.html?scan`, tick the warranty and choose `Друго…`. (1) Copy the text `18`. Click into `#warranty-custom`, select all, Ctrl+V: the field shows `18`, the preview reads `Гаранција до: 15.4.2028.`, the status line is empty and the receipt is still shown. (2) Copy an image (open `/test/sample-qr.png` in a tab → Copy image). Focus `#warranty-custom` and press Ctrl+V: no scan starts (the status never shows `Читам QR код…`), the receipt stays, the choice stays (ticked, `Друго…`, `18`), and `__opened` is unchanged. (3) Click an empty area of the page and press Ctrl+V with the image: a scan starts and the receipt is shown again, with the warranty off (unchanged behaviour). (4) Copy text and press Ctrl+V on the empty area: `У клипборду нема слике.` (unchanged). (5) **(added, amendment 3)** With the image still copied, click `#warranty-on` to tick it (focus stays on the checkbox) and press Ctrl+V: a scan starts, and the receipt is shown again with the warranty off. (6) **(added)** Tick the warranty, change `#warranty-months` to 12 with the mouse (focus stays on the select) and press Ctrl+V with the image: a scan starts. (7) **(added)** Tick the warranty, focus `#warranty-on` and press Ctrl+V with copied text: `У клипборду нема слике.` Repeat steps 1, 2, 5 and 6 in Firefox **(changed)** | R20, E18 | integration (manual, harness) | `test/harness.html` |
-| H17 **(new, amendment 2)** `#add-calendar` errors. In `harness.html?scan`, run in the console: `window.close = () => { window.__closed = true; }; const realCreate = chrome.tabs.create; chrome.tabs.create = async () => { throw new Error('tabs.create failed (test)'); };`. (1) Click `#add-calendar`: the status shows `tabs.create failed (test)` as an error, `window.__closed` is `undefined`, and `__opened` is unchanged. (2) Tick the warranty, run `const realBuild = buildCalendarUrl; buildCalendarUrl = () => { throw new Error('build failed (test)'); };`, and click again: the status shows `build failed (test)`, and the page is not closed. (3) Restore both (`chrome.tabs.create = realCreate; buildCalendarUrl = realBuild;`) and click again: one URL is added to `__opened`, and `window.__closed === true` | R21, E19 | integration (manual, harness) | `test/harness.html` |
-| H18 **(rewritten, amendment 4)** One expiry tab per choice, and errors. **Tab mode**, `harness.html?tab&scan`, tick the warranty (24), and in the console run `window.close = () => { window.__closed = true; };`. (1) Double-click `#add-warranty`, then click it once more: exactly one new URL in `__opened` (`dates=20281015/20281016`). The button is disabled with the label `✓ Отворено у новој картици`, the status reads `Догађај за истек гаранције је отворен у новој картици.`, and `window.__closed` is `undefined`. (2) Choose 6: the button is enabled with the label `Додај датум истека гаранције`. Click it: one more URL, with `dates=20270415/20270416`, and the button is disabled again. (3) Untick and tick the warranty: the button is enabled again. (4) Run `chrome.tabs.create = async () => { throw new Error('x'); }` and click: the status shows `x` as an error, and the button is enabled with its original label. **Popup mode**, `harness.html?scan`, with the same `window.close` and throwing `chrome.tabs.create` stubs: (5) double-click `#add-warranty`: the status shows `x` as an error, `window.__closed` is `undefined`, and the button is enabled with the label `Додај датум истека гаранције` | R14, E16 | integration (manual, harness) | `test/harness.html` |
-| S3 **(new, amendment 2; changed, amendment 3)** Static check: the paste listener's first statement is `if (isTextEntryTarget(e.target)) return;`; the `dragover` and `drop` handlers each start with `if (isTextEntryTarget(e.target) && !carriesFiles(e)) return;`; and `isEditableTarget` no longer exists (Acceptance criteria) | R20, R22 | integration (script) | n/a (command) |
-| H19 **(new, amendment 3)** Drag and drop in tab mode, Chrome and Firefox. In `harness.html?tab&scan`, tick the warranty, choose `Друго…` and type `18`. (1) Select `18` in `#warranty-custom` and drag it to the end of the field, then drag the text `6` from another window (a text editor) into the field: the browser handles both, the status line shows no `Превуци фајл слике.` error, `#drop` never gets the `over` class, and the receipt stays. (2) Drag `test/sample-qr.png` from the file manager onto `#warranty-on`: a scan starts, and the receipt is shown again with the warranty off. (3) Tick the warranty and drop the same file on `#warranty-months`: a scan starts. (4) Tick the warranty, choose `Друго…`, and drop the file on `#warranty-custom`: a scan starts, and the tab does not navigate to the image. (5) Drag selected text from another window onto an empty area of the page: `Превуци фајл слике.` (unchanged) | R22, E20 | integration (manual, harness) | `test/harness.html` |
-| H20 **(new, amendment 4)** The hint. (1) In `harness.html?scan`, the hint is not visible before the warranty is ticked. Tick it: `#warranty-hint` is visible, directly below `#add-warranty` and above `#add-calendar`, with exactly `За оба догађаја скенирај рачун двапут: једном за куповину, једном за истек гаранције.` (2) Choose `Друго…` and clear the field: the hint stays visible. (3) Untick: it is hidden. (4) In `harness.html?tab&scan`, with the warranty ticked: `document.getElementById('warranty-hint') === null`. (5) At 340px and on a 360px Android viewport (H9 settings) the hint wraps without horizontal scroll | R23, R16 | integration (manual, harness) | `test/harness.html` |
-| S1 Static check: no storage APIs in `src/`, and the manifests, `src/content.js` and `src/parser.js` are unchanged against `main` (Acceptance criteria) | R15, R17 | integration (script) | n/a (command) |
-| S2 Docs check: `grep` for the texts in Design in each of the files listed under R18; the "stores nothing" statements are still present | R18 | integration (script) | n/a (command) |
+| T1 **(changed, A5)** Golden purchase URL without git: `buildCalendarUrl(SALE)` equals `'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: 'KAFE PRIMER DOO — 750,00 RSD', dates: '20261107T132506/20261107T134006', ctz: 'Europe/Belgrade', details: SALE_LINES.join('\n'), location: 'ПРИМЕРНА 1, Београд' })`, with `SALE_LINES` as in the test file (13 lines, no `🛡`) | R2 | unit | `test/calendar-url.test.js` |
+| T2 `normalizeWarrantyMonths` table (Design examples) | R4, E6 | unit | same |
+| T3 `warrantyEndDate('7.11.2026. 13:25:06', m)` for 6/12/24/36 → `7.5.2027`, `7.11.2027`, `7.11.2028`, `7.11.2029` | R3, R5 | unit | same |
+| T4 Month-end clamping table (E1) | R5, E1 | unit | same |
+| T5 Year rollover table (E2), including the all-day `dates` for `31.12.2026.` + 12 | R5, R9, E2 | unit | same |
+| T6 `warrantyEndDate` returns `null` for `'nonsense'` and for months `0`, `121`, `'abc'`, `null` | R5 | unit | same |
+| T7 `formatWarrantyDate` → `'7.11.2028.'`, `'1.2.2027.'` | R7 | unit | same |
+| T8 **(removed, A5)** It checked the `🛡` line in the purchase description. T26 now checks that the line is absent | n/a | n/a | n/a |
+| T9 **(removed, A5)** It checked the `🛡` position after `💰` in the purchase description | n/a | n/a | n/a |
+| T10 **(removed, A5)** Non-sale purchase with a warranty argument; T26 covers it | n/a | n/a | n/a |
+| T11 **(removed, A5)** `buildCalendarUrl` no longer validates a period (R8) | n/a | n/a | n/a |
+| T12 **(changed, A5)** `dateTimeStr: 'nonsense'`: `buildCalendarUrl(bad)` throws exactly `Датум рачуна није препознат: nonsense`; `buildWarrantyCalendarUrl(bad, 24)`, `(bad, 0)` and the refund variant with `null` throw `/Датум рачуна/` (date checked first). No months argument on `buildCalendarUrl` | R8, R9, E3 | unit | same |
+| T13 `buildWarrantyCalendarUrl(SALE, 24)`: keys in R9 order, `text`, `dates` `'20281107/20281108'`, `ctz`, `location`, `details === buildWarrantyDescription(SALE, SALE.items.length, 24)`, no `💰`/`💳`/`🧾` line | R9, R19 | unit | same |
+| T14 Empty merchant → `text` `'Гаранција истиче'` | R9, E12 | unit | same |
+| T15 `buildWarrantyCalendarUrl` throws `Неисправан период гаранције: <v>` for `null`, `undefined`, `0`, `121`, `'abc'`, `''`, `2.5`; then `Гаранција се додаје само за рачун продаје.` for `REFUND`/`OTHER`; the period is checked before the type | R9, E4 | unit | same |
+| T16 **(changed, A5)** `LONG` + 24, **expiry URL only**: length ≤ 6000; `… +N`; kept items are the first ones; non-item lines equal `[🛡 line, '📋 …', '🕐 …', '🛒 Артикли:', '🔗 …']`; `🔗` last; no `💰` line. (The purchase side of long receipts is `main`'s own test "very long receipts are trimmed…") | R10, R19, E7 | unit | same |
+| T17 **(changed, A5)** The E11 cases: `warrantyEndDate` and the expiry `dates` match. The child-process run under `America/Los_Angeles`, `Pacific/Kiritimati`, `Europe/Belgrade` and `UTC` returns the same `[end, buildCalendarUrl(r), buildWarrantyCalendarUrl(r, m)]` as in-process (no months argument on `buildCalendarUrl`; no `🛡` assertion on the purchase description) | R6, E11 | unit | same |
+| T18 `isWarrantyExpired` with the four E17 instants | R11, E5, E17 | unit | same |
+| T19 Exports: the three constants, and the eight function names are functions | R3, R4, R19 | unit | same |
+| T20 **(changed, A5)** Against local `main` (skipped without git or `main`, F3): for `SALE`, `REFUND`, `OTHER`, `LONG`, and `{...SALE, vatTotal: '', merchantName: ''}`, `buildCalendarUrl(r)` and `buildCalendarUrl(r, 24)` equal `main`'s `buildCalendarUrl(r)`, and `buildReceiptDescription(r, n)` and `(r, n, 24)` equal `main`'s `buildReceiptDescription(r, n)` for `n` in `0`, `1`, `r.items.length` | R2, R8 | unit (uses git) | same |
+| T21 `buildWarrantyDescription` exact lines (SALE + 24); `(no items parsed)`; no `🛡` for period `0` or a refund; no `💳`/`💰`/`🧾`/`👤`/`PIB:`/merchant/address line; item lines equal `buildReceiptDescription(LONG, limit)`'s | R19, E14 | unit | same |
+| T22 **(changed, A5: call only)** Em dashes in the expiry title (`ALFA - BETA DOO`, `A-B`, `X - Y - 5`, no `' — '`). The purchase title check calls `buildCalendarUrl({...SALE, merchantName: 'ALFA — BETA DOO'})` without a months argument and still gets `'ALFA — BETA DOO — 750,00 RSD'` | R9, E14 | unit | same |
+| T23 `isWarrantyExpired` with `t.mock.getter(Intl.DateTimeFormat.prototype, 'format', () => () => '11/7/2028')`: same results as T18, `callCount()` 0 | R11, E17 | unit | same |
+| T24 **(removed, A5)** `buildCalendarUrl` no longer rejects periods for non-sale receipts (R8) | n/a | n/a | n/a |
+| T25 Trimmed expiry title (`'   '`, `' \t\n'`, `undefined` → `'Гаранција истиче'`; `'  KAFE PRIMER DOO  '`; `'  ALFA — BETA  '`) | R9, E12 | unit | same |
+| T26 **(new, A5)** The purchase path takes no warranty: `buildCalendarUrl.length === 1` and `buildReceiptDescription.length === 2`. For `SALE`, `REFUND`, `OTHER` and `LONG`, and `m` in `6`, `24`, `0`, `'abc'`, `null`: `buildCalendarUrl(r, m) === buildCalendarUrl(r)` (no throw), and `buildReceiptDescription(r, r.items.length, m) === buildReceiptDescription(r, r.items.length)`. No purchase `details` line starts with `\u{1F6E1}` | R2, R7, R8, E13 | unit | same |
+| File test "E5" **(changed, A5)** Keep only the expiry assertion (`buildWarrantyCalendarUrl(old, 6)` `dates` `20210415/20210416`, and its first `details` line `🛡 Гаранција до: 15.4.2021.`); drop the purchase `🛡` assertion | E5 | unit | same |
+| File test "E8" **(changed, A5)** Calls to `buildWarrantyCalendarUrl(SALE, 36)` and `(SALE, 6)` leave `buildCalendarUrl(SALE)` unchanged; drop the assertions that `buildCalendarUrl(SALE, 6/24)` carry `🛡` | E8 | unit | same |
+| H1 **(changed, A5)** `harness.html?scan`: `#warranty` present; `#add-as-receipt` checked; `#warranty-options` hidden; `#warranty-hint` visible under the radios; no `#warranty-on`, no `#add-warranty`. Click `#add-calendar`: `__opened[0]` has no `🛡` and equals `buildCalendarUrl(parseReceiptHtml(FIXTURE.receiptPageHtml(''), FIXTURE.receiptUrl))` (receipt HTML without the QR image; same fields) | R1, R2, R13, R23 | integration (manual, harness) | `test/harness.html` |
+| H2 **(changed, A5)** `?scan`, select **Гаранција**: `#warranty-options` visible, `24 месеца`, preview `Гаранција до: 15.10.2028.`. Click `#add-calendar`: one URL with title `Гаранција истиче: KAFE PRIMER DOO`, `dates=20281015/20281016`, `details` starting `🛡 Гаранција до: 15.10.2028.`, ending with `🔗`, no `💰`/`💳`/`🧾` | R3, R9, R11, R13, R19 | same | same |
+| H3 **(changed, A5)** `harness.html?tab&scan`: **Гаранција**, choose 6: preview `15.4.2027.`; click: URL with `dates=20270415/20270416`. Select **Рачун**: options hidden; click: URL equals H1's | R3, R13, E8 | same | same |
+| H4 **(changed, A5)** `?tab&scan`, **Гаранција**, `Друго…`: input shown, prefilled `24`, focused. `0`, `2.5`, `121` or empty: error `Унеси број месеци од 1 до 120.`, `#add-calendar` disabled. Select **Рачун**: button enabled, and a click opens H1's URL. Back to **Гаранција**: error and disabled again. Type `18`: `Гаранција до: 15.4.2028.`, enabled | R12, E6, E21 | same | same |
+| H5 **(rewritten, A5)** Popup mode, `?scan`, close stub. (1) **Рачун**, click: `__opts` is `{ url }` (no `active` key, as on `main`), `__closed === true`. (2) Reload, **Гаранција**, close stub, click: `__opts.url` is the expiry URL, no `active: false`, `__closed === true`. The status line shows no message in either case | R13 | same | same |
+| H6 **(changed, A5)** Select **Гаранција** and 6, then click `#scan-tab` again: exactly one `#warranty`, **Рачун** checked, options hidden, 24 selected, custom hidden | R15, E9, E10 | same | same |
+| H7 **(changed, A5)** `?scan&refund`: no `#warranty`, no `#warranty-hint`; Add opens `main`'s refund URL | R1, E4 | same | same |
+| H8 **(changed, A5)** Old receipt (fixture date `15.10.2020. 10:15:30` via a console fetch stand-in), **Гаранција**, 6: preview ends with ` (истекла)`, button enabled; click opens `dates=20210415/20210416` | R11, E5 | same | same |
+| H9 **(changed, A5)** DevTools, Android UA, 360×740, `?tab&scan` and `?scan`: `body.mobile`; both radio labels, the select, the input and `#add-calendar` ≥ 44px tall; no horizontal scroll; hint wraps. Repeat at 340px and in dark mode | R16, R23 | same | same |
+| H10 **(rewritten, A5)** Real Chrome desktop popup, Firefox desktop popup, Firefox for Android 161+: (1) scan a sale, read the hint, select **Гаранција** (24), click: the all-day expiry form opens in front, popup closes. (2) Scan the same receipt again, keep **Рачун**, click: the purchase form opens in front, without a `🛡` line, popup closes. (3) Desktop full tab (`Изабери слику…`): no hint; **Рачун** → click → purchase form; back to the page, **Гаранција** → click → expiry form; the page stays open | R13, R16, R23, E15 | integration (manual) | n/a |
+| H11 On a real receipt page the floating button opens the same event as on `main` | R17 | integration (manual) | n/a |
+| H12 **(changed, A5)** In the PWA's code (`receipt/js/app.js`) in a browser console: `parseSummary` on the T22 expiry titles gives total `''`; the `💳` lookup on the H2 `details` finds nothing; `eventToReceipt` on the H1 purchase `details` gives the same result as on `main` | E13, E14 | integration (manual) | n/a |
+| H13 **(changed, A5)** `?scan`, **Гаранција**, `Друго…`, in Chrome and Firefox: `24.0` → `15.10.2028.`, enabled; `1e2` → `15.2.2035.` or the error; `+24` → `15.10.2028.` or the error (write down which); `2.5` and empty → error, disabled. With `24.0`, Add opens the expiry URL with `🛡 Гаранција до: 15.10.2028.` | R12, E6 | integration (manual, harness) | `test/harness.html` |
+| H14 **(changed, A5)** Overlapping scans, as before (delayed first fetch, `handleImage(FIXTURE.receiptUrl)` twice). When the second receipt appears, select **Гаранција** and 6. After 4 s: one `#warranty`, still **Гаранција** with 6, empty status; Add opens `dates=20270415/20270416` | E10, E9 | same | same |
+| H15 Unreadable date (console fetch stand-in with `sdcDateTimeLabel` `nonsense`): error `Датум рачуна није препознат: nonsense`, `#receipt` hidden, no `#warranty`, `__opened` empty | E3 | same | same |
+| H16 **(changed, A5)** Paste, `?scan`, **Гаранција**, `Друго…`. (1) Text `18` pasted into `#warranty-custom`: field `18`, preview `15.4.2028.`, no error. (2) Image pasted with focus in `#warranty-custom`: no scan, choice and field stay. (3) Image on an empty area: scan; block back to **Рачун**. (4) Text on an empty area: `У клипборду нема слике.` (5) Click `#add-as-warranty` (focus on the radio), Ctrl+V the image: scan. (6) **Гаранција**, change `#warranty-months` with the mouse, Ctrl+V the image: scan. (7) Click `#add-as-receipt`, Ctrl+V text: `У клипборду нема слике.` Repeat 1, 2, 5, 6 in Firefox | R20, E18 | same | same |
+| H17 **(changed, A5)** `#add-calendar` errors, `?scan`, close stub. (1) `chrome.tabs.create = async () => { throw new Error('tabs.create failed (test)'); }`; click with **Рачун**: error shown, `__closed` undefined, `__opened` unchanged. (2) **Гаранција**, `const rb = buildWarrantyCalendarUrl; buildWarrantyCalendarUrl = () => { throw new Error('build failed (test)'); };`, click: `build failed (test)`, not closed. (3) Restore both, click: one expiry URL added, `__closed === true` | R21, E19 | same | same |
+| H18 **(rewritten, A5)** Tab mode switching, `?tab&scan`, close stub: **Рачун** → click → purchase URL; **Гаранција** (24) → click → expiry URL; **Рачун** → click → purchase URL again, identical to the first. `__opened` has 3 URLs, `__closed` undefined, `#add-calendar` keeps its label `Додај у календар` throughout. Then double-click `#add-calendar`: two more identical URLs are added, as on `main` (E16) | R13, E8, E15, E16 | same | same |
+| H19 **(changed, A5)** Drag and drop, `?tab&scan`, **Гаранција**, `Друго…`, `18`. (1) Text dragged within or into `#warranty-custom`: handled by the browser, no error, no `#drop.over`. (2) `test/sample-qr.png` dropped on `#add-as-warranty`: scan, back to **Рачун**. (3) **Гаранција**, file dropped on `#warranty-months`: scan. (4) **Гаранција**, `Друго…`, file dropped on `#warranty-custom`: scan, no navigation. (5) Text dropped on an empty area: `Превуци фајл слике.` | R22, E20 | same | same |
+| H20 **(changed, A5)** Hint. `?scan`: `#warranty-hint` is visible with exactly `За рачун и гаранцију скенирај рачун двапут.`, directly under the radio group, with both **Рачун** and **Гаранција** selected. `?tab&scan`: `document.getElementById('warranty-hint') === null`. `?scan&refund`: no hint | R23 | same | same |
+| S1 No storage APIs in `src/`; manifests, `src/content.js`, `src/parser.js` unchanged against `main` | R15, R17 | integration (script) | command |
+| S2 **(changed, A5)** Docs greps (Acceptance criteria) | R18 | integration (script) | command |
+| S3 Paste and drag guards in place (Acceptance criteria) | R20, R22 | integration (script) | command |
+| S4 **(new, A5)** Removed UI ids and old texts are gone from `src/` (Acceptance criteria) | R1, R13, R23 | integration (script) | command |
 
 ## Implementation steps
-1. **Constants and `normalizeWarrantyMonths`** in `src/calendar-url.js`, with exports. Verify:
-   `node -e "Object.assign(globalThis, require('./src/parser.js')); const c=require('./src/calendar-url.js'); console.log(c.normalizeWarrantyMonths(' 24 '), c.normalizeWarrantyMonths('1e2'))"`
-   prints `24 null`.
-2. **`warrantyEndDate`, `formatWarrantyDate`, `isWarrantyExpired`.** Verify in the same way:
-   `formatWarrantyDate(warrantyEndDate('31.8.2027. 10:00:00', 6))` prints `29.2.2028.`.
-3. **Extract `fitCalendarUrl(make, itemCount)`** from `buildCalendarUrl` without changing behaviour. Verify:
-   `node --test test/*.test.js` still passes all 17 existing tests.
-4. **Add the third parameter to `buildReceiptDescription` and the second to `buildCalendarUrl`** (the R7 line and
-   the R8 validation). Verify: the existing tests pass, and the T20 byte-identity script prints `identical`.
-5. **Add `buildWarrantyCalendarUrl`.** Verify: for `SALE` + 24 it prints `dates` `20281107/20281108`.
-6. **Run the test-writer's tests** (T1-T19): `node --test test/*.test.js`, then the same under both `TZ` values.
-   All pass.
-7. **Add `renderWarranty()` to `src/popup.js` and change `showReceipt()`.** Verify: H1-H6 in the harness.
-8. **Add the warranty section to `src/popup.css`.** Verify: H9.
-9. **Update the docs** (README, privacy page and text, landing page, both store descriptions). Verify: S2.
-10. **Run `python3 scripts/build.py`.** It finishes without "Build failed". Run H10 and H11 with
-    `dist/firefox/` and the unpacked repo.
+Amendments 1–4 are implemented (up to `4290a03`). Only amendment 5 remains. The test writer and the implementer can
+work in parallel, because this spec fixes every interface.
 
-### Amendment steps (after review, on top of `fd5de43`)
-11. **`isWarrantyExpired`**: switch to `formatToParts` as in Design. Verify: T18 and T23 pass, and
-    `grep -n "en-CA\|\.format(" src/calendar-url.js` prints nothing.
-12. **Extract `itemLinesText`** and add `buildWarrantyDescription` (R19). Verify: T1 and T20 still pass
-    (purchase output unchanged), and T21 passes.
-13. **`buildWarrantyCalendarUrl`**: use `buildWarrantyDescription` and the em-dash replacement in the title.
-    Export `buildWarrantyDescription`. Verify: T13, T16, T19 and T22 pass.
-14. **Popup `months()`**: read `custom.valueAsNumber` as in Design. Verify: H4 and H13.
-15. **Tests (test-writer)**: update T13, T16 and T19, and add T21-T24 in `test/calendar-url.test.js`. Verify:
-    `node --test test/*.test.js` passes, as do both `TZ` runs. Then run H5 and H12-H15.
-16. **README**: replace the Limitations bullet with the new text in Design. Verify: S2.
+### Amendment 5 steps: test writer (test files only)
+- **W1.** In `test/calendar-url.test.js`:
+  - delete T8, T9, T10, T11 and T24;
+  - change T1, T12, T16, T17, T20 and T22, and the file tests "E5" and "E8", as in the Test plan;
+  - add T26.
 
-### Amendment 2 steps (second review, on top of `8f92d33`)
-17. **Expiry title**: in `buildWarrantyCalendarUrl`, build the title as in Design step 3 (trim, then replace em
-    dashes). Verify: T13, T14, T22 and the new T25 pass.
-18. **`#add-calendar` errors**: wrap the URL build and `chrome.tabs.create` in `try/catch` as in Design. On error,
-    call `setStatus(err.message, 'error')` and return before `window.close()`. Verify: H17, then H1-H3 still
-    behave as before.
-19. **`#add-warranty` once per choice**: disable the button on click, set the `✓ Отворено у новој картици` label on
-    success, re-enable it on error, and restore the label in `update()`. Verify: H18, then H5.
-20. **Paste guard**: add `isEditableTarget()` and make `if (isEditableTarget(e.target)) return;` the first statement
-    of the `paste` listener. Verify: S3 and H16.
-21. **Tests (test-writer)**: add T25 to `test/calendar-url.test.js`. Verify: `node --test test/*.test.js` passes,
-    as do both `TZ` runs. Then run H5 and H16-H18.
+  Keep `SALE_LINES` and `WARRANTY_LINE`.
+- **W2.** Check against `4290a03` (current code, where `buildCalendarUrl` still takes a warranty):
+  - T26 fails (`buildCalendarUrl.length` is 2, and a months argument adds a `🛡` line);
+  - T20 fails on `buildCalendarUrl(r, 24)` and `buildReceiptDescription(r, n, 24)`;
+  - the changed file test "E8" fails if it asserts `buildCalendarUrl(SALE, 6) === buildCalendarUrl(SALE)`;
+  - all other tests, T1 included, pass against `4290a03`.
 
-### Amendment 3 steps (third review, on top of `e1a810c`)
-22. **Narrow the helper**: replace `isEditableTarget` with `TEXT_INPUT_TYPES` and `isTextEntryTarget` as in
-    Design, and change the paste guard to `if (isTextEntryTarget(e.target)) return;`. Verify: the first and third S3
-    greps, then H16, including the new steps 5-7.
-23. **Drag and drop guard**: inside `if (IN_TAB) { … }`, add `carriesFiles` and make
-    `if (isTextEntryTarget(e.target) && !carriesFiles(e)) return;` the first statement of the `dragover` and `drop`
-    handlers. Verify: the second S3 grep, then H19.
-24. **Regression run**: `node --test test/*.test.js` and both `TZ` runs pass unchanged (no unit-test change in
-    this amendment). Then run H1, H6 and H16-H19.
+  All tests pass once I1 is done.
+- **W3.** No harness change is needed (`?refund` exists).
 
-### Amendment 4 steps (real-device check, on top of `c642a63`)
-Unit tests: **no T-row changes**. The URL builders (`buildCalendarUrl`, `buildWarrantyCalendarUrl`,
-`buildWarrantyDescription`) and `src/calendar-url.js` do not change in this amendment; only `src/popup.js`,
-`src/popup.css` and the docs do.
-25. **`#add-warranty` handler**: replace it with the Design code (in front with `active: true`; in popup mode
-    `window.close()`; the `✓` label and status only in tab mode; on error re-enable and show the message). Verify:
-    `grep -c "active: false" src/popup.js` prints 0, then H5 and H18.
-26. **Hint**: in `renderWarranty`, append `#warranty-hint` after `#add-warranty` when `!IN_TAB`, and add the
-    `.warranty-hint` CSS rule. Verify: H20 and H9.
-27. **Docs**: replace the README "Warranty" paragraph, add the new Limitations bullet, and change the МОГУЋНОСТИ
-    and FEATURES bullets in both store descriptions. Verify: S2, including the new README grep.
-28. **Regression run**: `node --test test/*.test.js` and both `TZ` runs pass unchanged. Run H1-H3, H6, H16 and
-    H17 in the harness, then H10 on real Chrome, Firefox desktop and Firefox for Android.
+### Amendment 5 steps: implementer (production code and docs only)
+- **I1. `src/calendar-url.js`:** remove the warranty parameter, the `🛡` entry and the period check from
+  `buildReceiptDescription` and `buildCalendarUrl` (Design).
+  - Verify: `node -e "Object.assign(globalThis, require('./src/parser.js')); const c = require('./src/calendar-url.js'); console.log(c.buildCalendarUrl.length, c.buildReceiptDescription.length)"`
+    prints `1 2`.
+  - Verify: the T20 script in Acceptance criteria prints `identical`.
+- **I2. `src/popup.js`:** replace `renderWarranty` with the radio-choice version, and `showReceipt` with the
+  one-button version (Design). Remove `#warranty-on`, `#add-warranty`, the `✓ Отворено у новој картици` label and the
+  amendment-4 hint. Verify: S4, then H1–H6, H17, H18 and H20.
+- **I3. `src/popup.css`:** apply the Warranty section from Design. Verify: H9.
+- **I4. Docs:** replace the README paragraph and the Limitations bullets; update `docs/privacy.html` (and its "Last
+  updated"), `store/firefox/fields/privacy-policy.txt`, `docs/index.html` and both store descriptions. Verify: S2.
+- **I5. Regression run:** run the three `node --test` commands and `python3 scripts/build.py`, then H7, H8,
+  H11–H16 and H19 in the harness, and H10 on real browsers.
 
 ## Acceptance criteria
 Run from the repository root:
@@ -810,7 +737,7 @@ node --test test/*.test.js                               # all pass, 0 fail
 TZ=America/Los_Angeles node --test test/*.test.js        # all pass
 TZ=Pacific/Kiritimati  node --test test/*.test.js        # all pass
 
-# T20 / R2: byte-identical to main without a warranty
+# T20 / R2, R8: the purchase path is byte-identical to main, with or without an extra argument
 D=$(mktemp -d) && git show main:src/calendar-url.js > "$D/cal-main.js" && node -e '
 Object.assign(globalThis, require("./src/parser.js"));
 const before = require(process.argv[1]), after = require("./src/calendar-url.js");
@@ -820,160 +747,119 @@ const SALE = { merchantName: "KAFE PRIMER DOO", address: "ПРИМЕРНА 1, Б
   items: [{ name: "Espresso", qty: "1", total: "220,00" }] };
 const long = { ...SALE, items: Array.from({ length: 150 }, (_, i) => ({ name: "Артикал са дугим називом " + i, qty: "1", total: "100,00" })) };
 const cases = [SALE, { ...SALE, transactionType: "ПРОМЕТ РЕФУНДАЦИЈА" }, { ...SALE, transactionType: "АВАНС ПРОДАЈА" }, long];
-const ok = cases.every(r => before.buildCalendarUrl(r) === after.buildCalendarUrl(r) && after.buildCalendarUrl(r) === after.buildCalendarUrl(r, null));
-console.log(ok ? "identical" : "DIFFERENT"); process.exit(ok ? 0 : 1);
+const ok = cases.every(r => before.buildCalendarUrl(r) === after.buildCalendarUrl(r) && after.buildCalendarUrl(r) === after.buildCalendarUrl(r, 24)
+  && before.buildReceiptDescription(r, 1) === after.buildReceiptDescription(r, 1, 24));
+console.log(ok && after.buildCalendarUrl.length === 1 && after.buildReceiptDescription.length === 2 ? "identical" : "DIFFERENT");
 ' "$D/cal-main.js"                                        # prints: identical
 
-# S1 / R15, R17: nothing stored, no new permissions, shared files untouched
+# S1 / R15, R17
 grep -nE "localStorage|sessionStorage|indexedDB|chrome\.storage|browser\.storage|document\.cookie" src/*.js   # no output
 git diff --exit-code main -- manifest.json manifest.firefox.json src/content.js src/parser.js            # no output, exit 0
 
-# S2 / R18: docs mention the feature; the privacy promise is kept
+# S2 / R18
+grep -c "Додај као" README.md                                                                               # ≥ 1
 grep -c "Гаранција" README.md store/chrome/fields/store-listing-description.txt store/firefox/fields/description.txt   # each ≥ 1
-grep -c "Open it before\|background tab" README.md                                                          # prints 0 (amendment 4)
-grep -c "active: false" src/popup.js                                                                            # prints 0 (amendment 4)
-grep -c "За оба догађаја скенирај рачун двапут: једном за куповину, једном за истек гаранције." src/popup.js     # prints 1 (amendment 4)
-grep -ci "warranty" docs/privacy.html store/firefox/fields/privacy-policy.txt docs/index.html                          # each ≥ 1
-grep -c "stores nothing" docs/privacy.html store/firefox/fields/privacy-policy.txt                                     # each ≥ 1
+grep -c "Додај датум истека гаранције\|background tab\|Open it before" README.md docs/privacy.html store/firefox/fields/privacy-policy.txt store/chrome/fields/store-listing-description.txt store/firefox/fields/description.txt docs/index.html   # each 0
+grep -ci "warranty" docs/privacy.html store/firefox/fields/privacy-policy.txt docs/index.html                       # each ≥ 1
+grep -c "stores nothing" docs/privacy.html store/firefox/fields/privacy-policy.txt                                  # each ≥ 1
 
-# S3 / R20, R22: only text-entry fields keep paste and text drags
+# S3 / R20, R22
 grep -A1 "document.addEventListener('paste'" src/popup.js | grep -c "if (isTextEntryTarget(e.target)) return;"   # prints 1
 grep -A1 -E "document.addEventListener\('(dragover|drop)'" src/popup.js | grep -c "if (isTextEntryTarget(e.target) && !carriesFiles(e)) return;"   # prints 2
-grep -c "isEditableTarget" src/popup.js                                                                     # prints 0
 
-# R11 / T23: today's Belgrade date comes from formatToParts, not from a formatted string
+# S4 / R1, R13, R23: removed UI is gone, new texts are present
+grep -c "add-warranty\|warranty-on\|Додај датум истека гаранције\|✓ Отворено у новој картици\|За оба догађаја" src/popup.js src/popup.css   # each 0
+grep -c "За рачун и гаранцију скенирај рачун двапут." src/popup.js                                         # prints 1
+grep -c "Додај као:" src/popup.js                                                                           # prints 1
+grep -c "active: false\|active: true" src/popup.js                                                          # prints 0
+
+# R11 / T23
 grep -nE "en-CA|\.format\(" src/calendar-url.js                # no output
 
 python3 scripts/build.py                                 # ends without "Build failed"
 ```
-Manual: H1-H20 behave as described in the Test plan.
+Manual: H1–H20 behave as described in the Test plan.
 
 ## Assumptions
-- **A1. End date.** The end date is the same day-of-month N months later (`7.11.2026.` + 24 → `7.11.2028.`), as in
-  the user's example. It is not "the day before".
-- **A2. Date format.** Dates are written `D.M.YYYY.` without zero padding, matching the receipt style and the
+- **A1.** The end date is the same day of the month N months later (`7.11.2026.` + 24 → `7.11.2028.`), as in the
   user's example.
-- **A3. Emoji.** `🛡` is U+1F6E1 without U+FE0F, as typed in the user's example. The other marks in the module have
-  no variation selector either.
-- **A4. Line position.** The `🛡` line goes immediately before `🔗`. The `🔗` line stays last (an existing test
-  checks this), and the PWA's address and item scans end before this point.
-- **A5. PWA risk.** The PWA's tolerance of the new line was checked by reading the local clone
-  (`receipt` @ `fb02811`), not the deployed app. It stays a risk (E13).
-- **A6. Warranty event title.** The title is `Гаранција истиче: <merchant>` (with a colon) instead of the user's
-  example `Гаранција истиче — <merchant>`, and every em dash (U+2014) in the merchant name becomes `-`. The PWA
-  reads the text after the last `' — '` as the amount. Only U+2014 is replaced, because that is the only dash
-  the PWA splits on; en dashes and hyphens stay.
-- **A7. Warranty event description (amended).** It keeps what a warranty claim needs: the end date (`🛡`), the
-  receipt number (`📋`), the purchase date and time (`🕐`), the items (what was bought) and the receipt link
-  (`🔗`). The following are dropped:
-  - `💰` and `💳`, as the review asked;
-  - `🧾` VAT, which says nothing about the warranty and is a money line;
-  - the merchant (already in the title), the address (already in `location`), PIB and cashier.
-  
-  The `🛡` line comes first because it is the point of the event.
-- **A8. Background tab: obsolete (amendment 4).** The background tab (`active: false`) was replaced after the
-  user's H10 check on Firefox for Android 161. The form did open behind the popup as specified, but end users
-  would not find it in the tab switcher and would lose the warranty event. Two alternatives were ruled out:
-  popup windows (there is no `windows` API on Firefox for Android), and closing the calendar tab automatically
-  (which needs new permissions). See A23.
-- **A9. Block position (reason changed, amendment 4).** The warranty block still sits above "Додај у календар",
-  because the period must be set before that click for the `🛡` line to be included. The earlier reason (the
-  warranty button had to be used first) no longer applies.
-- **A10. Cap.** The custom period is capped at 120 months, as the analyst suggested. The user did not give a
-  limit.
-- **A11. "Друго…".** It is prefilled with the preset selected just before (24 at first), so the form never starts
-  invalid.
-- **A12. "(истекла)" marker.** It is shown only in the popup preview. The event text stays in its fixed format.
-- **A13. Non-sale receipts.** A warranty passed to `buildCalendarUrl` for a non-sale receipt is ignored, not an
-  error. The UI never passes one, and ignoring it keeps `buildCalendarUrl` safe for other callers.
-  `buildWarrantyCalendarUrl` does throw, because a non-sale expiry event would be meaningless.
-- **A14. UI tests.** UI behaviour is checked manually with the existing harness. The repo has no browser test
-  runner or `package.json`, and adding one is out of scope.
-- **A16. PWA counting.** Dropping lines does not stop the PWA counting the expiry event. Its report counts every
-  event in the Receipts calendar and takes the amount from the title (`receipt/js/report.js:48-90`, read at
-  `fb02811`). The amendment therefore limits the effect (0 RSD, unknown payment) instead of removing it. The real
-  mitigation is the README advice, or a PWA change (Open question 7).
-- **A17. Custom field reading.** `valueAsNumber` follows each browser's number parsing. For `+24` and `1e2` the
-  result may differ between browsers (H13 records it). Both cases are safe: either a correct whole number of
-  months, or the error.
-- **A18. Text-entry fields (changed, amendment 3).** The user rejected the earlier rule ("any `input`, `select`
-  …"). Only `textarea`, `contenteditable` and `input` of type `text`, `number`, `search`, `email`, `url`, `tel` or
-  `password` keep a paste (R20) or a text drag (R22). The list is the HTML input types that take typed text:
-  - `number` is the only one the popup uses (`#warranty-custom`);
-  - the others are listed so that a future text field keeps working without another fix;
-  - `date`, `time` and similar picker types are left out because the popup has none.
-
-  Checkbox, radio, select and button focus never blocks paste-to-scan.
-- **A19. Button after opening (changed, amendment 4).** `✓ Отворено у новој картици` and the status text now appear
-  only in tab mode, where the page stays open. The label follows the receipt-page button's
-  `✓ Отворено у календару` (`src/content.js:34`) and still says "new tab", because the form opens in another tab.
-  In popup mode the page closes, so it shows nothing.
-- **A21. Files dropped on a text field (new, amendment 3).** A drag that carries files is always handled by the
-  page, even over `#warranty-custom`: an image scans, and anything else shows `Превуци фајл слике.` Leaving it to
-  the browser would open the file in the tab and replace the extension page.
-
-  This differs from paste on purpose. An image pasted into `#warranty-custom` still does nothing (R20, unchanged
-  from amendment 2), because a paste there cannot navigate away.
-- **A22. Detecting files (new, amendment 3).** "The drag carries files" is read from
-  `e.dataTransfer.types.includes('Files')`, which Chrome and Firefox expose during `dragover` as well as `drop`.
-  The file list itself is only readable on `drop`.
-- **A23. Foreground and rescan (new, amendment 4, chosen by the user).** In popup mode, each button opens its form
-  in front and closes the popup. Getting both events takes two scans, and either one alone is fine. This needs
-  no new permissions and works the same on desktop and Android. The cost is a second scan for users who want
-  both events, which is why the hint (R23) exists.
-- **A24. Hint placement and visibility (new, amendment 4).**
-  - The hint is the last line of `#warranty-options`, between `#add-warranty` and `#add-calendar`, the two buttons
-    it is about.
-  - It shows whenever the warranty is on, even while the period is invalid. It describes the flow, not the
-    current choice.
-  - It is muted, 12px text, like other secondary text in the popup.
-  - It is not created in tab mode, where it would be wrong (no rescan is needed there).
-- **A25. What popup mode means (new, amendment 4).** "Popup mode" is every mode except `?tab`. That includes the
-  desktop toolbar popup and Firefox for Android's full-screen page, which is opened without `?tab` (the file
-  picker opens there directly, `src/popup.js` `pick-file` handler). On Android the hint therefore shows, and both
-  buttons close the page.
-- **A26. Disabled on click, in both modes (new, amendment 4).** `#add-warranty` is disabled from the first click in
-  both modes, so a double click cannot open two forms before the popup closes. `#add-calendar` keeps its existing
-  behaviour (no such guard); changing it is out of scope.
-- **A20. Trimming.** Only the expiry title trims the merchant name, and only at its ends; inner spaces stay. The
-  purchase title and description use `merchantName` exactly as before (R2).
-- **A15. Release.** No version bump in `manifest.json` and no regenerated screenshots. The store screenshots will
-  show the new warranty row only after the next `scripts/screenshots.sh` run, at release time.
+- **A2.** Dates are written `D.M.YYYY.` without zero padding.
+- **A3.** `🛡` is U+1F6E1 without U+FE0F.
+- **A4 (obsolete, A5).** The position of the `🛡` line in the purchase description no longer matters: the purchase
+  description has no such line.
+- **A5 (obsolete, A5).** The PWA's tolerance of a `🛡` line in purchase events no longer matters: purchase events are
+  `main`'s again (E13).
+- **A6.** The expiry title is `Гаранција истиче: <merchant>`, with em dashes replaced by `-`, because the PWA splits
+  titles on `' — '`.
+- **A7.** The expiry description keeps the end date, receipt number, purchase date and time, items and link. It
+  drops `💰`, `💳`, `🧾`, merchant, address, PIB and cashier.
+- **A8 (obsolete, amendment 4).** Background tab.
+- **A9 (changed, A5).** The block, with the choice and the picker, sits above "Додај у календар", because the choice
+  must be made before the click.
+- **A10.** The custom period is capped at 120 months.
+- **A11.** "Друго…" is prefilled with the preset selected just before.
+- **A12.** "(истекла)" appears only in the preview.
+- **A13 (changed, A5).** Non-sale receipts get no block. `buildWarrantyCalendarUrl` throws for them.
+  `buildCalendarUrl` has no warranty input at all now.
+- **A14.** UI behaviour is checked manually with the harness. There is no browser test runner.
+- **A15.** No version bump and no regenerated screenshots in this branch.
+- **A16.** The PWA counts every event in its Receipts calendar, so a saved expiry event still counts (0 RSD,
+  unknown payment). The README advises another calendar.
+- **A17.** `valueAsNumber` for `+24` and `1e2` depends on the browser. Either result is safe.
+- **A18.** Text-entry fields are `textarea`, `contenteditable`, and `input` of type `text`, `number`, `search`,
+  `email`, `url`, `tel` or `password`. Radio buttons, selects, checkboxes and buttons never block paste or drop.
+- **A19 (obsolete, A5).** The `✓ Отворено у новој картици` label: the button that carried it is gone.
+- **A20.** Only the expiry title trims the merchant name.
+- **A21.** A drag that carries files is always handled by the page, even over the text field. An image pasted into
+  the text field does nothing.
+- **A22.** "Carries files" is read from `e.dataTransfer.types.includes('Files')`.
+- **A23 (changed, A5).** One click adds one event. In popup mode the popup closes, so both events take two scans; in
+  tab mode the user switches and clicks again. This is the user's decision, and it needs no permissions.
+- **A24 (changed, A5).** The hint is muted 12px text directly under the radio group. It is visible in popup mode
+  whatever the choice, because it is about the flow and a user on **Рачун** may also want the warranty. It is not
+  created in tab mode or for non-sale receipts.
+- **A25.** "Popup mode" is every mode except `?tab`, including Firefox for Android's full-screen page.
+- **A26 (obsolete, A5).** The double-click guard on `#add-warranty`. "Додај у календар" keeps `main`'s behaviour,
+  with no guard (E16).
+- **A27 (new, A5).** The choice is two native radio inputs (`name="add-as"`) inside a `div` with
+  `role="radiogroup"`, labelled by the `Додај као:` text. A `fieldset`/`legend` was not used because a `legend`
+  does not sit inline next to the options without extra CSS.
+  - `#add-as-receipt` and `#add-as-warranty` are the stable ids for tests.
+  - The labels are exactly `Рачун` and `Гаранција`.
+- **A28 (new, A5).** Switching between **Рачун** and **Гаранција** keeps the period state (preset, custom value)
+  within the same receipt. Only a new scan resets it.
+- **A29 (new, A5).** "No warranty parameter" means it is removed from the signatures (`.length` 1 and 2). An extra
+  argument from an old caller is silently ignored, which is standard JavaScript and keeps the output equal to
+  `main`. Making it throw would add a check that `main` does not have.
+- **A30 (new, A5).** "The purchase path equals `main`" is checked on the output (byte-identical URLs and
+  descriptions: T1, T20, T26), not on the source. `buildReceiptDescription` and `buildCalendarUrl` may keep calling
+  the shared helpers `itemLinesText` and `fitCalendarUrl`.
+- **A31 (new, A5).** In tab mode there is no "opened" mark and no status message after a click, as on `main`'s
+  button. Each click opens the form for the current choice.
+- **A32 (new, A5).** The `chrome.tabs.create({ url })` call omits `active` for both choices, exactly as `main` does
+  (the default is in front). Amendment 4's explicit `active: true` is dropped so that the purchase path matches
+  `main`; S4 checks that neither `active` form remains.
+- **A33 (new, A5).** T1 now holds a git-free golden value for `SALE`'s full purchase URL. T20 keeps the broader
+  comparison with `main` where git is available.
 
 ## Open questions
-None blocks implementation; each has a recommended default that the spec already uses.
-1. ~~Warranty event title~~: resolved by the review. The title is `Гаранција истиче: <merchant>`, and em dashes in
-   the merchant name become `-` (R9, A6).
-2. **Receipt-page button.** Should the floating button on `suf.purs.gov.rs` also offer the warranty? Recommended:
-   not now (non-goal); the toolbar popup covers that page.
-3. **Cap.** Is 120 months acceptable as the maximum custom period (A10)?
-4. ~~Warranty event description~~: resolved by the review. It is the shorter R19 format, without `💰`, `💳` or
-   `🧾` (A7).
-5. ~~Second button~~: resolved by the user after H10 (amendment 4). The expiry form opens in front and the popup
-   closes. Getting both events in the popup takes two scans (R14, R23, A23).
-6. **Release.** Should the version bump to 1.1.0 and the store screenshots be regenerated as part of this
-   branch, or at release time (A15)?
-7. **PWA counting (E14, A16).** An expiry event saved in the PWA's Receipts calendar still counts as one receipt
-   (0 RSD, unknown payment) in its monthly count and average. Is the README advice enough? The alternative is a
-   change in the Receipt Scanner repo, for example skipping events whose title starts with `Гаранција истиче`.
-   Recommended: the README advice now, and the PWA change as a separate issue there.
+None blocks implementation.
+1. ~~Warranty event title~~: resolved (A6).
+2. **Receipt-page button.** Should the floating button also offer the warranty? Recommended: not now.
+3. **Cap.** Is 120 months acceptable (A10)?
+4. ~~Warranty event description~~: resolved (A7).
+5. ~~Second button~~: superseded by amendment 5 (one button, a choice).
+6. **Release.** Version bump to 1.1.0 and regenerated screenshots on this branch, or at release time (A15)?
+7. **PWA counting (E14, A16).** Is the README advice enough, or should the Receipt Scanner skip events titled
+   `Гаранција истиче…`? Recommended: the README now, and a PWA issue separately.
 
 ### Recorded follow-ups (not requirements)
-These were noted in review and are deliberately not part of this spec.
-- **F1. Intl-part guard in `isWarrantyExpired`.** If `formatToParts` ever returned no `year`, `month` or `day`
-  part, `parts.find(...)` would be `undefined`, and the function would throw inside the popup's `update()`. A guard
-  is a possible later hardening, for example falling back to "not expired" when a part is missing.
-- ~~**F2. Firefox for Android and `active: false`.**~~ **Resolved (amendment 4).** H10 on Firefox for Android 161
-  showed that the background tab opens but hides in the tab switcher. `#add-warranty` no longer uses
-  `active: false` (A8, A23).
-- **F3. T20 depends on a local `main`.** T20 and the acceptance byte-identity script compare with the local `main`
-  branch. That is meaningless once this branch is merged, and the test is skipped in CI when there is no `main`
-  ref. Replace it later with a fixed expected URL (a golden value) for the same receipts.
-- ~~**F4. Period change while the expiry tab opens.**~~ **Obsolete (amendment 4).** The race needed the page to stay
-  usable while a background tab opened.
-  - In popup mode the popup now closes on success, so no `✓` label is ever shown.
-  - In tab mode the new tab opens in front and takes focus at once, so the user cannot change the period on the
-    page while it opens.
-- **F5. Already-expired warranty.** For an expired warranty (E5), `#add-warranty` still offers an all-day event in
-  the past. If the user saves it to the PWA's Receipts calendar, it falls inside the PWA's "up to now" window at
-  once and is counted (E14, A16). A later change could hide or relabel the button for expired warranties.
+- **F1.** Intl-part guard in `isWarrantyExpired`: a missing `year`, `month` or `day` part would throw inside
+  `update()`.
+- ~~**F2.**~~ Resolved (amendment 4): the background tab is gone.
+- **F3 (partly resolved, A5).** T1 now has a git-free golden value for `SALE` (A33). T20's wider comparison still
+  depends on a local `main` and is skipped in CI without it. Golden values for `REFUND`, `OTHER` and `LONG` are a
+  possible later step.
+- ~~**F4.**~~ Obsolete (amendment 4, and the `✓` label is gone in amendment 5).
+- **F5.** For an already-expired warranty, **Гаранција** still opens an event in the past, which the PWA counts at
+  once if it is saved to its Receipts calendar.
