@@ -89,17 +89,23 @@ const SALE_LINES = [
 ];
 const WARRANTY_LINE = '\u{1F6E1} Гаранција до: 7.11.2028.';
 
-// Covers: R2, R8 (T1)
-test('T1 without a warranty the URL is unchanged: no argument, undefined and null give the same string', () => {
-  const url = ctx.buildCalendarUrl(SALE);
-  assert.equal(ctx.buildCalendarUrl(SALE, undefined), url);
-  assert.equal(ctx.buildCalendarUrl(SALE, null), url);
-  assert.deepEqual(keys(url), ['action', 'text', 'dates', 'ctz', 'details', 'location']);
-  assert.deepEqual(lines(url), SALE_LINES);
+// Covers: R2 (T1, changed by amendment 5): a golden value for SALE that needs no git.
+test('T1 the purchase URL for SALE is main\'s, byte for byte', () => {
+  const expected = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({
+    action: 'TEMPLATE',
+    text: 'KAFE PRIMER DOO — 750,00 RSD',
+    dates: '20261107T132506/20261107T134006',
+    ctz: 'Europe/Belgrade',
+    details: SALE_LINES.join('\n'),
+    location: 'ПРИМЕРНА 1, Београд',
+  });
+  assert.equal(ctx.buildCalendarUrl(SALE), expected);
+  assert.ok(!SALE_LINES.some(x => x.startsWith('\u{1F6E1}')));
 });
 
-// Covers: R2 (T20). Byte-identical to the main branch's builder; skipped where git or main is not available.
-test('T20 without a warranty the URL is byte-identical to the main branch', t => {
+// Covers: R2, R8 (T20, changed by amendment 5). Byte-identical to the main branch's builders, with or without an
+// extra argument; skipped where git or main is not available.
+test('T20 the purchase URL and description are byte-identical to the main branch', t => {
   let source;
   try {
     source = execFileSync('git', ['show', 'main:src/calendar-url.js'], { cwd: path.join(__dirname, '..'), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
@@ -113,9 +119,13 @@ test('T20 without a warranty the URL is byte-identical to the main branch', t =>
     fs.writeFileSync(file, source);
     const before = require(file);
     for (const r of [SALE, REFUND, OTHER, LONG, { ...SALE, vatTotal: '', merchantName: '' }]) {
-      assert.equal(ctx.buildCalendarUrl(r), before.buildCalendarUrl(r), r.transactionType);
-      assert.equal(ctx.buildCalendarUrl(r, null), before.buildCalendarUrl(r), r.transactionType);
-      assert.equal(ctx.buildCalendarUrl(r, undefined), before.buildCalendarUrl(r), r.transactionType);
+      const name = `${r.transactionType} (${r.items.length} items)`;
+      assert.equal(ctx.buildCalendarUrl(r), before.buildCalendarUrl(r), name);
+      assert.equal(ctx.buildCalendarUrl(r, 24), before.buildCalendarUrl(r), name + ', 24');
+      for (const n of [0, 1, r.items.length]) {
+        assert.equal(ctx.buildReceiptDescription(r, n), before.buildReceiptDescription(r, n), `${name}, n=${n}`);
+        assert.equal(ctx.buildReceiptDescription(r, n, 24), before.buildReceiptDescription(r, n), `${name}, n=${n}, 24`);
+      }
     }
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -187,58 +197,12 @@ test('T7 formatWarrantyDate writes D.M.YYYY. without zero padding', () => {
   assert.equal(ctx.formatWarrantyDate(date(2029, 12, 31)), '31.12.2029.');
 });
 
-// Covers: R7, R8, R13 (T8)
-test('T8 with a warranty the description gets exactly one 🛡 line, right before the 🔗 line', () => {
-  const plain = ctx.buildCalendarUrl(SALE);
-  const url = ctx.buildCalendarUrl(SALE, 24);
-  const l = lines(url);
-  assert.equal(l.at(-2), WARRANTY_LINE);
-  assert.ok(l.at(-1).startsWith('🔗'));
-  assert.deepEqual(l.filter((_, i) => i !== l.length - 2), SALE_LINES);
-  assert.equal(l.at(-2).codePointAt(0), 0x1F6E1);
-  assert.equal([...l.at(-2)][1], ' '); // no U+FE0F variation selector between the mark and the space
-  assert.equal(l.filter(x => x.startsWith('\u{1F6E1}')).length, 1);
-  const p = new URL(url).searchParams, q = new URL(plain).searchParams;
-  for (const k of ['action', 'text', 'dates', 'ctz', 'location']) assert.equal(p.get(k), q.get(k), k);
-  assert.deepEqual(keys(url), keys(plain));
-  // a valid period given as a string works the same (R4)
-  assert.equal(ctx.buildCalendarUrl(SALE, '24'), url);
-  assert.equal(ctx.buildCalendarUrl(SALE, ' 24 '), url);
-  // the description builder takes the period as its third argument
-  assert.deepEqual(ctx.buildReceiptDescription(SALE, SALE.items.length, 24).split('\n'), l);
-  assert.deepEqual(ctx.buildReceiptDescription(SALE, SALE.items.length).split('\n'), SALE_LINES);
-});
-
-// Covers: R7 (T9)
-test('T9 without a VAT line the 🛡 line follows the total directly', () => {
-  const l = lines(ctx.buildCalendarUrl({ ...SALE, vatTotal: '' }, 24));
-  assert.deepEqual(l.slice(-3), ['💰 Укупно: 750,00 RSD', WARRANTY_LINE, '🔗 ' + SALE.sourceUrl]);
-});
-
-// Covers: R7, R8, E4 (T10)
-test('T10 refunds and other non-sale receipts get no warranty line', () => {
-  for (const r of [REFUND, OTHER]) {
-    assert.equal(ctx.buildCalendarUrl(r, 24), ctx.buildCalendarUrl(r), r.transactionType);
-    assert.ok(!lines(ctx.buildCalendarUrl(r, 24)).some(x => x.startsWith('\u{1F6E1}')), r.transactionType);
-    assert.equal(ctx.buildReceiptDescription(r, r.items.length, 24), ctx.buildReceiptDescription(r, r.items.length));
-  }
-});
-
-// Covers: R8, E6 (T11)
-test('T11 buildCalendarUrl rejects an invalid warranty period', () => {
-  for (const v of [0, -1, 121, 2.5, 'abc', '', '1e2', '999999', NaN, true]) {
-    assert.throws(() => ctx.buildCalendarUrl(SALE, v),
-      err => err instanceof Error && err.message === 'Неисправан период гаранције: ' + v, String(v));
-  }
-});
-
-// Covers: R8, R9, E3 (T12)
-test('T12 an unreadable receipt date is reported first by both builders', () => {
+// Covers: R8, R9, E3 (T12, changed by amendment 5)
+test('T12 an unreadable receipt date is reported by both builders, before anything else', () => {
   const bad = { ...SALE, dateTimeStr: 'nonsense' };
-  assert.throws(() => ctx.buildCalendarUrl(bad, 24), { message: 'Датум рачуна није препознат: nonsense' });
+  assert.throws(() => ctx.buildCalendarUrl(bad), err => err instanceof Error && err.message === 'Датум рачуна није препознат: nonsense');
   assert.throws(() => ctx.buildWarrantyCalendarUrl(bad, 24), { message: 'Датум рачуна није препознат: nonsense' });
   // checked before the period and the receipt type
-  assert.throws(() => ctx.buildCalendarUrl(bad, 0), /Датум рачуна/);
   assert.throws(() => ctx.buildWarrantyCalendarUrl(bad, 0), /Датум рачуна/);
   assert.throws(() => ctx.buildWarrantyCalendarUrl({ ...bad, transactionType: 'ПРОМЕТ РЕФУНДАЦИЈА' }, null), /Датум рачуна/);
 });
@@ -286,36 +250,28 @@ test('T15 buildWarrantyCalendarUrl rejects a missing or invalid period, then a n
   assert.throws(() => ctx.buildWarrantyCalendarUrl(REFUND, 0), /Неисправан период гаранције/);
 });
 
-// Covers: R10, R19, E7 (T16, changed by the amendment)
-test('T16 long receipts with a warranty: both URLs fit, only item lines are dropped', () => {
+// Covers: R10, R19, E7 (T16, changed by amendment 5). The purchase side of long receipts is main's own test
+// "very long receipts are trimmed to fit the link, keeping total and source link".
+test('T16 a long receipt\'s expiry URL fits, and only item lines are dropped', () => {
+  const url = ctx.buildWarrantyCalendarUrl(LONG, 24);
+  assert.ok(url.length <= 6000, String(url.length));
+  const details = new URL(url).searchParams.get('details');
+  assert.match(details, /… \+\d+/);
+  const l = details.split('\n');
+  assert.ok(l.at(-1).startsWith('🔗 https://suf.purs.gov.rs/'));
+  // the item lines kept are the first ones
+  const items = l.filter(x => x.startsWith('• '));
+  assert.ok(items.length > 0 && items.length < LONG.items.length);
+  assert.deepEqual(items, LONG.items.slice(0, items.length).map(it => `• ${it.name} ×${it.qty} = ${it.total} RSD`));
+  assert.ok(l.includes(`… +${LONG.items.length - items.length}`));
+  // every other line is kept, and there is no 💰 line
   const rest = x => !x.startsWith('• ') && !/^… \+\d+$/.test(x);
-  const cases = [
-    [ctx.buildCalendarUrl(LONG, 24), ctx.buildReceiptDescription(LONG, 0, 24)],
-    [ctx.buildWarrantyCalendarUrl(LONG, 24), ctx.buildWarrantyDescription(LONG, 0, 24)],
-  ];
-  for (const [url, shortest] of cases) {
-    assert.ok(url.length <= 6000, String(url.length));
-    const details = new URL(url).searchParams.get('details');
-    assert.match(details, /… \+\d+/);
-    const l = details.split('\n');
-    assert.ok(l.includes(WARRANTY_LINE));
-    assert.ok(l.at(-1).startsWith('🔗 https://suf.purs.gov.rs/'));
-    // the item lines kept are the first ones, and every other line is still there
-    const items = l.filter(x => x.startsWith('• '));
-    assert.ok(items.length > 0 && items.length < LONG.items.length);
-    assert.deepEqual(items, LONG.items.slice(0, items.length).map(it => `• ${it.name} ×${it.qty} = ${it.total} RSD`));
-    assert.ok(l.includes(`… +${LONG.items.length - items.length}`));
-    assert.deepEqual(l.filter(rest), shortest.split('\n').filter(rest));
-  }
-  // the purchase event keeps its total; the expiry event keeps 🛡, 📋, 🕐, 🛒 and 🔗 and has no 💰 line
-  const purchase = lines(cases[0][0]), expiry = lines(cases[1][0]);
-  assert.ok(purchase.includes('💰 Укупно: 750,00 RSD'));
-  assert.deepEqual(expiry.filter(rest), [WARRANTY_LINE, '📋 ' + LONG.receiptNumber, '🕐 ' + LONG.dateTimeStr, '🛒 Артикли:',
+  assert.deepEqual(l.filter(rest), [WARRANTY_LINE, '📋 ' + LONG.receiptNumber, '🕐 ' + LONG.dateTimeStr, '🛒 Артикли:',
     '🔗 ' + LONG.sourceUrl]);
-  assert.ok(!expiry.some(x => x.startsWith('💰')));
+  assert.ok(!l.some(x => x.startsWith('💰')));
 });
 
-// Covers: R6, E11 (T17)
+// Covers: R6, E11 (T17, changed by amendment 5)
 const E11 = [
   ['1.1.2026. 00:10:00', 6, date(2026, 7, 1), '20260701/20260702'],
   ['31.12.2026. 23:59:59', 1, date(2027, 1, 31), '20270131/20270201'],
@@ -327,7 +283,6 @@ test('T17 end dates around midnight and DST changes depend only on the printed d
     assert.deepEqual(ctx.warrantyEndDate(d, m), expected, `${d} + ${m}`);
     const r = { ...SALE, dateTimeStr: d };
     assert.equal(new URL(ctx.buildWarrantyCalendarUrl(r, m)).searchParams.get('dates'), dates, `${d} + ${m}`);
-    assert.ok(lines(ctx.buildCalendarUrl(r, m)).includes('\u{1F6E1} Гаранција до: ' + ctx.formatWarrantyDate(expected)));
   }
 });
 
@@ -339,12 +294,12 @@ test('T17 results do not change with the machine timezone', () => {
     const [sale, cases] = JSON.parse(process.argv[1]);
     process.stdout.write(JSON.stringify(cases.map(([d, m]) => {
       const r = { ...sale, dateTimeStr: d };
-      return [c.warrantyEndDate(d, m), c.buildCalendarUrl(r, m), c.buildWarrantyCalendarUrl(r, m)];
+      return [c.warrantyEndDate(d, m), c.buildCalendarUrl(r), c.buildWarrantyCalendarUrl(r, m)];
     })));`;
   const arg = JSON.stringify([SALE, E11]);
   const expected = E11.map(([d, m, end]) => {
     const r = { ...SALE, dateTimeStr: d };
-    return [end, ctx.buildCalendarUrl(r, m), ctx.buildWarrantyCalendarUrl(r, m)];
+    return [end, ctx.buildCalendarUrl(r), ctx.buildWarrantyCalendarUrl(r, m)];
   });
   for (const TZ of ['America/Los_Angeles', 'Pacific/Kiritimati', 'Europe/Belgrade', 'UTC']) {
     const out = execFileSync(process.execPath, ['-e', script, arg], { env: { ...process.env, TZ }, encoding: 'utf8' });
@@ -365,22 +320,24 @@ test('T18 isWarrantyExpired compares with today\'s date in Belgrade; the end day
   assert.equal(ctx.isWarrantyExpired(date(2999, 1, 1)), false);
 });
 
-// Covers: E5: an expired warranty is written into the event without any "expired" marker.
-test('E5 an old receipt keeps the plain warranty line in the event', () => {
+// Covers: E5 (changed by amendment 5): an expired warranty still gives a plain expiry event, in the past.
+test('E5 an old receipt gives an expiry event with the plain warranty line', () => {
   const old = { ...SALE, dateTimeStr: '15.10.2020. 10:15:30' };
-  assert.equal(lines(ctx.buildCalendarUrl(old, 6)).at(-2), '\u{1F6E1} Гаранција до: 15.4.2021.');
-  assert.equal(new URL(ctx.buildWarrantyCalendarUrl(old, 6)).searchParams.get('dates'), '20210415/20210416');
+  const p = new URL(ctx.buildWarrantyCalendarUrl(old, 6)).searchParams;
+  assert.equal(p.get('dates'), '20210415/20210416');
+  assert.equal(p.get('details').split('\n')[0], '\u{1F6E1} Гаранција до: 15.4.2021.');
 });
 
-// Covers: E8: each call depends only on its arguments, so turning the warranty off again gives today's URL.
-test('E8 changing the period between calls leaves no state behind', () => {
+// Covers: E8 (changed by amendment 5): each call depends only on its arguments, so building expiry events
+// leaves the purchase URL (Рачун) unchanged.
+test('E8 building expiry events leaves no state behind', () => {
   const plain = ctx.buildCalendarUrl(SALE);
-  const with24 = ctx.buildCalendarUrl(SALE, 24);
-  assert.ok(lines(ctx.buildCalendarUrl(SALE, 6)).includes('\u{1F6E1} Гаранција до: 7.5.2027.'));
+  const expiry6 = ctx.buildWarrantyCalendarUrl(SALE, 6);
   ctx.buildWarrantyCalendarUrl(SALE, 36);
   assert.equal(ctx.buildCalendarUrl(SALE), plain);
-  assert.equal(ctx.buildCalendarUrl(SALE, null), plain);
-  assert.equal(ctx.buildCalendarUrl(SALE, 24), with24);
+  ctx.buildWarrantyCalendarUrl(SALE, 6);
+  assert.equal(ctx.buildCalendarUrl(SALE), plain);
+  assert.equal(ctx.buildWarrantyCalendarUrl(SALE, 6), expiry6);
 });
 
 // Covers: R3, R4, R19 (T19, changed by the amendment)
@@ -425,7 +382,7 @@ test('T21 buildWarrantyDescription: end date, receipt number, date, items and li
   }
 });
 
-// Covers: R9, E14 (T22, added by the amendment)
+// Covers: R9, E14 (T22, added by the amendment; call changed by amendment 5)
 test('T22 em dashes in the merchant name become hyphens in the expiry title only', () => {
   const title = merchantName => new URL(ctx.buildWarrantyCalendarUrl({ ...SALE, merchantName }, 24)).searchParams.get('text');
   const cases = [
@@ -441,7 +398,7 @@ test('T22 em dashes in the merchant name become hyphens in the expiry title only
   // only U+2014 is replaced; en dashes and hyphens stay (A6)
   assert.equal(title('A – B-C'), 'Гаранција истиче: A – B-C');
   // the purchase event's title is unchanged
-  const p = new URL(ctx.buildCalendarUrl({ ...SALE, merchantName: 'ALFA — BETA DOO' }, 24)).searchParams;
+  const p = new URL(ctx.buildCalendarUrl({ ...SALE, merchantName: 'ALFA — BETA DOO' })).searchParams;
   assert.equal(p.get('text'), 'ALFA — BETA DOO — 750,00 RSD');
 });
 
@@ -454,17 +411,6 @@ test('T23 isWarrantyExpired reads the Belgrade date from parts, not from .format
   assert.equal(ctx.isWarrantyExpired(date(2027, 7, 1), new Date('2027-07-01T21:59:59Z')), false);
   assert.equal(ctx.isWarrantyExpired(date(2027, 7, 1), new Date('2027-07-01T22:00:00Z')), true);
   assert.equal(getter.mock.callCount(), 0);
-});
-
-// Covers: R8, E4, E6 (T24, added by the amendment)
-test('T24 an invalid period is rejected for non-sale receipts too; a valid one is ignored', () => {
-  for (const r of [REFUND, OTHER]) {
-    for (const v of [0, -1, 121, 2.5, 'abc', '', NaN]) {
-      assert.throws(() => ctx.buildCalendarUrl(r, v),
-        err => err instanceof Error && err.message === 'Неисправан период гаранције: ' + v, `${r.transactionType} ${v}`);
-    }
-    assert.equal(ctx.buildCalendarUrl(r, 24), ctx.buildCalendarUrl(r), r.transactionType);
-  }
 });
 
 // Covers: R9, E12 (T25, added by amendment 2)
@@ -484,5 +430,24 @@ test('T25 the expiry title trims the merchant name before replacing em dashes', 
     assert.ok(!/[\s:]$/.test(text), JSON.stringify(text));
     assert.equal(p.get('details'), sale.get('details'), JSON.stringify(merchantName));
     assert.equal(p.get('location'), sale.get('location'), JSON.stringify(merchantName));
+  }
+});
+
+// Covers: R2, R7, R8, E13 (T26, added by amendment 5)
+test('T26 the purchase builders take no warranty: an extra argument changes nothing', () => {
+  assert.equal(ctx.buildCalendarUrl.length, 1);
+  assert.equal(ctx.buildReceiptDescription.length, 2);
+  for (const r of [SALE, REFUND, OTHER, LONG]) {
+    const url = ctx.buildCalendarUrl(r);
+    const description = ctx.buildReceiptDescription(r, r.items.length);
+    for (const m of [6, 24, 0, 'abc', null]) {
+      const name = `${r.transactionType} (${r.items.length} items), ${m}`;
+      let withMonths;
+      assert.doesNotThrow(() => { withMonths = ctx.buildCalendarUrl(r, m); }, name);
+      assert.equal(withMonths, url, name);
+      assert.equal(ctx.buildReceiptDescription(r, r.items.length, m), description, name);
+      assert.ok(!lines(withMonths).some(x => x.startsWith('\u{1F6E1}')), name);
+    }
+    assert.ok(!lines(url).some(x => x.startsWith('\u{1F6E1}')));
   }
 });
