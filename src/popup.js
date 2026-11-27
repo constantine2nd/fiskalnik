@@ -363,13 +363,20 @@ for (const id of ['file', 'camera']) {
 }
 
 // ── Paste ─────────────────────────────────────────────────────
-// A paste into a form field (the warranty's months) is typing, not a receipt image: leave it to the browser.
-function isEditableTarget(target) {
-  return target instanceof Element && (target.closest('input, textarea, select') !== null || target.isContentEditable);
+// Inputs that take typed text. Checkboxes, radio buttons, selects and buttons are not among them,
+// so a paste or drop while one of those has focus still scans the image.
+const TEXT_INPUT_TYPES = ['text', 'number', 'search', 'email', 'url', 'tel', 'password'];
+
+// A paste or text drag into a text field (the warranty's months) is typing, not a receipt image:
+// leave it to the browser.
+function isTextEntryTarget(target) {
+  if (!(target instanceof Element)) return false;
+  if (target.isContentEditable || target instanceof HTMLTextAreaElement) return true;
+  return target instanceof HTMLInputElement && TEXT_INPUT_TYPES.includes(target.type);
 }
 
 document.addEventListener('paste', e => {
-  if (isEditableTarget(e.target)) return;
+  if (isTextEntryTarget(e.target)) return;
   const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'));
   if (item) { e.preventDefault(); handleImage(item.getAsFile()); }
   else setStatus('У клипборду нема слике.', 'error');
@@ -393,9 +400,15 @@ if (IN_TAB) {
   document.body.classList.add('in-tab');
   $('drop-hint').classList.remove('hidden');
   const drop = $('drop');
-  document.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+  const carriesFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
+  document.addEventListener('dragover', e => {
+    if (isTextEntryTarget(e.target) && !carriesFiles(e)) return;   // text dragged into or within a text field
+    e.preventDefault();
+    drop.classList.add('over');
+  });
   document.addEventListener('dragleave', () => drop.classList.remove('over'));
   document.addEventListener('drop', e => {
+    if (isTextEntryTarget(e.target) && !carriesFiles(e)) return;
     e.preventDefault();
     drop.classList.remove('over');
     const file = [...(e.dataTransfer?.files || [])].find(f => f.type.startsWith('image/'));
