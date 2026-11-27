@@ -175,8 +175,9 @@ function buildCalendarUrl(receipt, warrantyMonths) {
 
 // A second, all-day event on the day the warranty ends: SALE (7.11.2026.) + 24 →
 // text 'Гаранција истиче: KAFE PRIMER DOO', dates '20281107/20281108' (end date exclusive).
-// The title never contains ' — ' (em dashes in the merchant name become '-'), so the Receipt
-// Scanner PWA never reads an amount from it: 'ALFA — BETA DOO' → 'Гаранција истиче: ALFA - BETA DOO'.
+// The title never contains ' — ' (the merchant name is trimmed and its em dashes become '-'), so the
+// Receipt Scanner PWA never reads an amount from it: 'ALFA — BETA DOO' → 'Гаранција истиче: ALFA - BETA DOO';
+// '   ' → 'Гаранција истиче'.
 function buildWarrantyCalendarUrl(receipt, warrantyMonths) {
   if (receiptWallTime(receipt.dateTimeStr) === null) {
     throw new Error('Датум рачуна није препознат: ' + receipt.dateTimeStr);
@@ -188,10 +189,12 @@ function buildWarrantyCalendarUrl(receipt, warrantyMonths) {
 
   const end = warrantyEndDate(receipt.dateTimeStr, warrantyMonths);
   const dates = `${formatAllDayStamp(end)}/${formatAllDayStamp({ ...end, day: end.day + 1 })}`;
+  const name = (receipt.merchantName || '').trim().replace(/\u2014/g, '-');
+  const text = name ? 'Гаранција истиче: ' + name : 'Гаранција истиче';
 
   const make = itemLimit => 'https://calendar.google.com/calendar/render?' + new URLSearchParams({
     action:   'TEMPLATE',
-    text:     receipt.merchantName ? 'Гаранција истиче: ' + receipt.merchantName.replace(/\u2014/g, '-') : 'Гаранција истиче',
+    text,
     dates,
     ctz:      'Europe/Belgrade',
     details:  buildWarrantyDescription(receipt, itemLimit, warrantyMonths),

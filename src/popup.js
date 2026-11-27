@@ -165,6 +165,7 @@ function renderWarranty(receipt, mainButton) {
       endText.classList.add('hidden');
       error.classList.remove('hidden');
     }
+    addWarranty.textContent = 'Додај датум истека гаранције';
     mainButton.disabled = addWarranty.disabled = !end;
   };
 
@@ -183,11 +184,18 @@ function renderWarranty(receipt, mainButton) {
   on.addEventListener('change', update);
   custom.addEventListener('input', update);
 
+  // One expiry tab per choice: the button stays off after a successful open until the choice changes.
   addWarranty.addEventListener('click', async () => {
+    addWarranty.disabled = true;                       // no second tab while this one opens
     try {
       await chrome.tabs.create({ url: buildWarrantyCalendarUrl(receipt, months()), active: false });
+      addWarranty.disabled = true;                     // stays off until the choice changes (update())
+      addWarranty.textContent = '✓ Отворено у новој картици';
       setStatus('Догађај за истек гаранције је отворен у новој картици.');
-    } catch (err) { setStatus(err.message, 'error'); }
+    } catch (err) {
+      addWarranty.disabled = false;
+      setStatus(err.message, 'error');
+    }
   });
 
   return { box, months };
@@ -199,8 +207,13 @@ function showReceipt(receipt, calendarUrl) {
   add.id = 'add-calendar';
   add.addEventListener('click', async () => {
     // Built at click time from the current warranty choice; with none it is the URL built at scan time.
-    const months = warranty?.months() ?? null;
-    await chrome.tabs.create({ url: months ? buildCalendarUrl(receipt, months) : calendarUrl });
+    try {
+      const months = warranty?.months() ?? null;
+      await chrome.tabs.create({ url: months ? buildCalendarUrl(receipt, months) : calendarUrl });
+    } catch (err) {
+      setStatus(err.message, 'error');
+      return;                                        // the popup stays open to show the error
+    }
     // Desktop closes the popup by itself when the new tab takes focus. Firefox for Android leaves
     // it on top of the new tab, so close it to reveal the calendar.
     if (!IN_TAB) window.close();
@@ -350,7 +363,13 @@ for (const id of ['file', 'camera']) {
 }
 
 // ── Paste ─────────────────────────────────────────────────────
+// A paste into a form field (the warranty's months) is typing, not a receipt image: leave it to the browser.
+function isEditableTarget(target) {
+  return target instanceof Element && (target.closest('input, textarea, select') !== null || target.isContentEditable);
+}
+
 document.addEventListener('paste', e => {
+  if (isEditableTarget(e.target)) return;
   const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'));
   if (item) { e.preventDefault(); handleImage(item.getAsFile()); }
   else setStatus('У клипборду нема слике.', 'error');
