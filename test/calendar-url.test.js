@@ -466,3 +466,23 @@ test('T24 an invalid period is rejected for non-sale receipts too; a valid one i
     assert.equal(ctx.buildCalendarUrl(r, 24), ctx.buildCalendarUrl(r), r.transactionType);
   }
 });
+
+// Covers: R9, E12 (T25, added by amendment 2)
+test('T25 the expiry title trims the merchant name before replacing em dashes', () => {
+  const sale = new URL(ctx.buildWarrantyCalendarUrl(SALE, 24)).searchParams;
+  const cases = [
+    ['   ', 'Гаранција истиче'],
+    [' \t\n', 'Гаранција истиче'],
+    [undefined, 'Гаранција истиче'],
+    ['  KAFE PRIMER DOO  ', 'Гаранција истиче: KAFE PRIMER DOO'],
+    ['  ALFA — BETA  ', 'Гаранција истиче: ALFA - BETA'],
+  ];
+  for (const [merchantName, expected] of cases) {
+    const p = new URL(ctx.buildWarrantyCalendarUrl({ ...SALE, merchantName }, 24)).searchParams;
+    const text = p.get('text');
+    assert.equal(text, expected, JSON.stringify(merchantName));
+    assert.ok(!/[\s:]$/.test(text), JSON.stringify(text));
+    assert.equal(p.get('details'), sale.get('details'), JSON.stringify(merchantName));
+    assert.equal(p.get('location'), sale.get('location'), JSON.stringify(merchantName));
+  }
+});
