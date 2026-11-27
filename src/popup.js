@@ -82,19 +82,35 @@ function renderSummary(receipt) {
 
 const WARRANTY_OPTION_LABEL = { 6: '6 месеци', 12: '12 месеци', 24: '24 месеца', 36: '36 месеци' };
 
-// Warranty choice for a sale receipt: one period for the whole receipt, counted from its date.
-// Nothing is remembered: the state lives in this closure, so every receipt starts with it off.
-// months() → the chosen number of months, or null (off or invalid); while the custom value is
-// invalid, both calendar buttons are disabled.
+// What "Додај у календар" adds for a sale: the purchase (Рачун, as on main) or an all-day event on
+// the day the warranty ends (Гаранција), with one period for the whole receipt, counted from its date.
+// Nothing is remembered: the state lives in this closure, so every receipt starts with Рачун.
+// isWarranty() → Гаранција selected; months() → the chosen number of months, or null (Рачун or an
+// invalid custom value). While Гаранција has an invalid value, mainButton is disabled.
 function renderWarranty(receipt, mainButton) {
   const box = el('div', 'warranty');
   box.id = 'warranty';
 
-  const toggle = el('label', 'warranty-toggle');
-  const on = el('input');
-  on.type = 'checkbox';
-  on.id = 'warranty-on';
-  toggle.append(on, 'Гаранција');
+  const addAs = el('div', 'add-as');
+  addAs.setAttribute('role', 'radiogroup');
+  addAs.setAttribute('aria-labelledby', 'add-as-label');
+  const addAsLabel = el('span', 'add-as-label', 'Додај као:');
+  addAsLabel.id = 'add-as-label';
+  const radio = (id, value, text, checked) => {
+    const input = el('input');
+    input.type = 'radio';
+    input.name = 'add-as';
+    input.id = id;
+    input.value = value;
+    input.checked = checked;
+    const label = el('label');
+    label.append(input, text);
+    addAs.append(label);
+    return input;
+  };
+  addAs.append(addAsLabel);
+  const receiptRadio = radio('add-as-receipt', 'receipt', 'Рачун', true);
+  const warrantyRadio = radio('add-as-warranty', 'warranty', 'Гаранција', false);
 
   const options = el('div', 'hidden');
   options.id = 'warranty-options';
@@ -130,21 +146,20 @@ function renderWarranty(receipt, mainButton) {
   error.id = 'warranty-error';
   error.setAttribute('role', 'alert');
 
-  const addWarranty = el('button', 'secondary', 'Додај датум истека гаранције');
-  addWarranty.type = 'button';
-  addWarranty.id = 'add-warranty';
-
-  options.append(select, custom, endText, error, addWarranty);
-  // The popup closes after either button, so getting both events there takes a second scan.
+  options.append(select, custom, endText, error);
+  box.append(addAs);
+  // The popup closes after the click, so getting both events there takes a second scan.
   if (!IN_TAB) {
-    const hint = el('p', 'warranty-hint', 'За оба догађаја скенирај рачун двапут: једном за куповину, једном за истек гаранције.');
+    const hint = el('p', 'warranty-hint', 'За рачун и гаранцију скенирај рачун двапут.');
     hint.id = 'warranty-hint';
-    options.append(hint);
+    box.append(hint);
   }
-  box.append(toggle, options);
+  box.append(options);
+
+  const isWarranty = () => warrantyRadio.checked;
 
   const months = () => {
-    if (!on.checked) return null;
+    if (!isWarranty()) return null;
     if (select.value === 'custom') {
       // Read as the browser's number (empty or unparsable → NaN), so '24.0' counts as 24.
       const n = custom.valueAsNumber;
@@ -154,7 +169,7 @@ function renderWarranty(receipt, mainButton) {
   };
 
   const update = () => {
-    if (!on.checked) {
+    if (!isWarranty()) {                         // Рачун: the purchase event, as on main
       options.classList.add('hidden');
       mainButton.disabled = false;
       return;
@@ -171,8 +186,7 @@ function renderWarranty(receipt, mainButton) {
       endText.classList.add('hidden');
       error.classList.remove('hidden');
     }
-    addWarranty.textContent = 'Додај датум истека гаранције';
-    mainButton.disabled = addWarranty.disabled = !end;
+    mainButton.disabled = !end;
   };
 
   // "Друго…" starts from the preset chosen just before, so the field never starts invalid.
@@ -187,29 +201,11 @@ function renderWarranty(receipt, mainButton) {
       update();
     }
   });
-  on.addEventListener('change', update);
+  receiptRadio.addEventListener('change', update);
+  warrantyRadio.addEventListener('change', update);
   custom.addEventListener('input', update);
 
-  // Opens the expiry form in front. The button stays disabled after success: in popup mode the page
-  // closes anyway, and in tab mode update() re-enables it on the next change of the choice.
-  addWarranty.addEventListener('click', async () => {
-    addWarranty.disabled = true;                     // a double click opens one form
-    try {
-      await chrome.tabs.create({ url: buildWarrantyCalendarUrl(receipt, months()), active: true });
-    } catch (err) {
-      addWarranty.disabled = false;
-      setStatus(err.message, 'error');
-      return;                                        // the popup stays open to show the error
-    }
-    // The popup (and Firefox for Android's full-screen page) closes, as after "Додај у календар";
-    // the other event takes a second scan (hint below).
-    if (!IN_TAB) { window.close(); return; }
-    // The full-tab page stays open: mark this choice as opened until it changes (update()).
-    addWarranty.textContent = '✓ Отворено у новој картици';
-    setStatus('Догађај за истек гаранције је отворен у новој картици.');
-  });
-
-  return { box, months };
+  return { box, isWarranty, months };
 }
 
 // Shows the receipt for review; the calendar form opens only when the user presses the button.
@@ -217,16 +213,16 @@ function showReceipt(receipt, calendarUrl) {
   const add = el('button', 'primary', 'Додај у календар');
   add.id = 'add-calendar';
   add.addEventListener('click', async () => {
-    // Built at click time from the current warranty choice; with none it is the URL built at scan time.
     try {
-      const months = warranty?.months() ?? null;
-      await chrome.tabs.create({ url: months ? buildCalendarUrl(receipt, months) : calendarUrl });
+      // Built at click time: the purchase URL from the scan (as on main), or the expiry event.
+      const url = warranty?.isWarranty() ? buildWarrantyCalendarUrl(receipt, warranty.months()) : calendarUrl;
+      await chrome.tabs.create({ url });
     } catch (err) {
       setStatus(err.message, 'error');
       return;                                        // the popup stays open to show the error
     }
     // Desktop closes the popup by itself when the new tab takes focus. Firefox for Android leaves
-    // it on top of the new tab, so close it to reveal the calendar.
+    // it on top of the new tab, so close it to reveal the calendar. (Tab mode: the page stays.)
     if (!IN_TAB) window.close();
   });
 

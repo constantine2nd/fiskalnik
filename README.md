@@ -51,15 +51,15 @@ which opens the camera; **Изабери слику…** opens your photos.
 
 The popup shows the receipt as it is printed, with its QR code; **Додај у календар** above it opens the event.
 
-**Warranty.** For a sale, tick **Гаранција** above the button and choose 6, 12, 24 or 36 months, or **Друго…**
-for your own number of months (1–120). The end date, counted from the receipt's date, is added to the event as
-`🛡 Гаранција до: 7.11.2028.`. **Додај датум истека гаранције** opens a different form: an all-day event on that
-date, titled `Гаранција истиче: Merchant`. Use either button, or both. Each opens its form in front, and in the
-toolbar popup (and on Android) it closes the popup. To add both events there, scan the receipt twice: once for
-the purchase, once for the warranty end. The popup says so while the warranty is on. In a full tab (desktop,
-**Изабери слику…**) the page stays open, and both buttons work one after the other. Nothing is remembered; the
-next receipt starts with the warranty off. The button on the receipt page has no warranty option; use the
-toolbar popup there.
+**Warranty.** For a sale, the popup asks **Додај као:** **Рачун** (the purchase event, as before) or
+**Гаранција**. With **Гаранција**, choose 6, 12, 24 or 36 months, or **Друго…** for your own number of months
+(1–120); the popup shows the end date, counted from the receipt's date. **Додај у календар** then opens an
+all-day event on that date instead of the purchase. It is titled `Гаранција истиче: Merchant` and carries
+`🛡 Гаранција до: 7.11.2028.`, the receipt number and date, the items and the receipt link. In the toolbar popup
+(and on Android) the popup closes after the click, so to add both events scan the receipt twice: once as
+**Рачун**, once as **Гаранција**. In a full tab (desktop, **Изабери слику…**) the page stays open: switch the
+choice and click again. Nothing is remembered; the next receipt starts with **Рачун**. The button on the receipt
+page has no warranty option; use the toolbar popup there.
 
 Refund receipts get a negative amount in the title and total and a `↩` line; other non-sale receipts (advance,
 training, …) get a `🏷` line.
@@ -78,7 +78,7 @@ so events saved to its **Receipts** calendar show up there too.
 - Journals are read in Cyrillic. Latin-script journals and item lines with negative amounts (some refunds and
   discounts) haven't been tested on real receipts.
 - If the tax portal changes its page, fields may come out empty.
-- In the toolbar popup one scan gives one event: the purchase or the warranty end. Scan again for the other.
+- In the toolbar popup one scan adds one event, the purchase or the warranty end; scan again for the other.
 - One warranty period per receipt. Save the warranty event to a calendar other than the Receipt Scanner's
   **Receipts** calendar. Once its date has passed, the Receipt Scanner shows any event in that calendar as a
   receipt: without an amount, under an unknown payment method, and counted in the month's number of receipts.

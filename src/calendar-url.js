@@ -24,9 +24,9 @@ function formatCalendarStamp(ms) {
 const TRANSACTION_MARK = { refund: '↩', other: '🏷' };
 
 const WARRANTY_PRESETS = [6, 12, 24, 36];   // months offered in the popup
-const DEFAULT_WARRANTY_MONTHS = 24;          // selected when the warranty is turned on
+const DEFAULT_WARRANTY_MONTHS = 24;          // selected when the block appears
 const MAX_WARRANTY_MONTHS = 120;             // custom periods above this are rejected
-const WARRANTY_MARK = '\u{1F6E1}';           // 🛡 (no U+FE0F)
+const WARRANTY_MARK = '\u{1F6E1}';           // 🛡 (no U+FE0F), only in the expiry description
 
 // Callers may hand over a number or text, so both are accepted, but only whole months in
 // range: 24 → 24, ' 24 ' → 24, '1e2' → null, 121 → null.
@@ -101,14 +101,7 @@ function itemLinesText(items, itemLimit) {
     : '(no items parsed)';
 }
 
-// The 🛡 line ('🛡 Гаранција до: 7.11.2028.') only for a sale with a valid warrantyMonths.
-function warrantyLine(receipt, warrantyMonths) {
-  const end = transactionKind(receipt.transactionType) === 'sale'
-    ? warrantyEndDate(receipt.dateTimeStr, warrantyMonths) : null;
-  return end ? `${WARRANTY_MARK} Гаранција до: ${formatWarrantyDate(end)}` : '';
-}
-
-function buildReceiptDescription(receipt, itemLimit, warrantyMonths) {
+function buildReceiptDescription(receipt, itemLimit) {
   const mark = TRANSACTION_MARK[transactionKind(receipt.transactionType)];
   const itemLines = itemLinesText(receipt.items, itemLimit);
 
@@ -125,7 +118,6 @@ function buildReceiptDescription(receipt, itemLimit, warrantyMonths) {
     itemLines,
     `💰 Укупно: ${signedTotal(receipt)} RSD`,
     receipt.vatTotal ? `🧾 ПДВ: ${receipt.vatTotal} RSD` : '',
-    warrantyLine(receipt, warrantyMonths),
     `🔗 ${receipt.sourceUrl}`,
   ].filter(Boolean).join('\n');
 }
@@ -133,9 +125,11 @@ function buildReceiptDescription(receipt, itemLimit, warrantyMonths) {
 // The expiry event's description: what was bought and where the receipt is, but no money,
 // payment or VAT line, so a copy saved to the Receipt Scanner's calendar adds no amount and no
 // payment method there. SALE + 24 → '🛡 Гаранција до: 7.11.2028.\n📋 …\n🕐 …\n🛒 Артикли:\n• …\n🔗 …'.
+// The 🛡 line comes only for a sale with a valid warrantyMonths; callers validate first.
 function buildWarrantyDescription(receipt, itemLimit, warrantyMonths) {
+  const end = transactionKind(receipt.transactionType) === 'sale' ? warrantyEndDate(receipt.dateTimeStr, warrantyMonths) : null;
   return [
-    warrantyLine(receipt, warrantyMonths),
+    end ? `${WARRANTY_MARK} Гаранција до: ${formatWarrantyDate(end)}` : '',
     `📋 ${receipt.receiptNumber}`,
     `🕐 ${receipt.dateTimeStr}`,
     '🛒 Артикли:',
@@ -153,12 +147,9 @@ function fitCalendarUrl(make, itemCount) {
   return url;
 }
 
-// warrantyMonths is optional: without it (undefined or null) the URL is exactly as before the
-// warranty existed. A non-sale receipt ignores it.
-function buildCalendarUrl(receipt, warrantyMonths) {
+function buildCalendarUrl(receipt) {
   const start = receiptWallTime(receipt.dateTimeStr);
   if (start === null) throw new Error('Датум рачуна није препознат: ' + receipt.dateTimeStr);
-  if (warrantyMonths != null) checkWarrantyMonths(warrantyMonths);
   const end = start + 15 * 60 * 1000;
 
   const make = itemLimit => 'https://calendar.google.com/calendar/render?' + new URLSearchParams({
@@ -166,7 +157,7 @@ function buildCalendarUrl(receipt, warrantyMonths) {
     text:     `${receipt.merchantName} — ${signedTotal(receipt)} RSD`,
     dates:    `${formatCalendarStamp(start)}/${formatCalendarStamp(end)}`,
     ctz:      'Europe/Belgrade',
-    details:  buildReceiptDescription(receipt, itemLimit, warrantyMonths),
+    details:  buildReceiptDescription(receipt, itemLimit),
     location: receipt.address,
   });
 
