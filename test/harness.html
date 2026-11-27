@@ -13,6 +13,7 @@
            http://127.0.0.1:8766/test/harness.html?scan       popup after "scan this tab" (the sample receipt)
            http://127.0.0.1:8766/test/harness.html?tab        the full-tab page (file picker, drag and drop)
            http://127.0.0.1:8766/test/harness.html?tab&scan   full-tab page with the sample receipt shown
+           add &refund to any of these to serve the sample receipt as a refund (ПРОМЕТ РЕФУНДАЦИЈА)
     "Add to calendar" does not open a tab here; the links it would open are collected in window.__opened.
   -->
   <script src="fixture.js"></script>
@@ -37,9 +38,14 @@
       };
 
       // the tax portal stand-in: the sample receipt link answers with the fixture page
+      // (?refund: the same receipt with a refund transaction line, for checking non-sale receipts)
+      const refund = new URLSearchParams(location.search).has('refund');
+      const receiptPage = refund
+        ? FIXTURE.receiptPageHtml(qrDataUrl).replace(/-+ПРОМЕТ ПРОДАЈА-+/, '-'.repeat(11) + 'ПРОМЕТ РЕФУНДАЦИЈА' + '-'.repeat(11))
+        : FIXTURE.receiptPageHtml(qrDataUrl);
       const realFetch = window.fetch.bind(window);
       window.fetch = (url, options) => String(url) === FIXTURE.receiptUrl
-        ? Promise.resolve(new Response(FIXTURE.receiptPageHtml(qrDataUrl), { headers: { 'Content-Type': 'text/html; charset=utf-8' } }))
+        ? Promise.resolve(new Response(receiptPage, { headers: { 'Content-Type': 'text/html; charset=utf-8' } }))
         : realFetch(url, options);
 
       // ?scan: press "scan this tab" once the popup's scripts have run
