@@ -693,7 +693,7 @@ body.mobile #warranty-options select, body.mobile #warranty-options input { min-
 | S1 No storage APIs in `src/`; manifests, `src/content.js`, `src/parser.js` unchanged against `main` | R15, R17 | integration (script) | command |
 | S2 **(changed, A5)** Docs greps (Acceptance criteria) | R18 | integration (script) | command |
 | S3 Paste and drag guards in place (Acceptance criteria) | R20, R22 | integration (script) | command |
-| S4 **(new, A5)** Removed UI ids and old texts are gone from `src/` (Acceptance criteria) | R1, R13, R23 | integration (script) | command |
+| S4 **(new, A5)** Removed UI ids and old texts are gone from `src/`, and no `chrome.tabs.create` call has an `active` key. `main`'s `tabs.query({ active: true, … })` is untouched and not checked (Acceptance criteria) | R1, R13, R23 | integration (script) | command |
 
 ## Implementation steps
 Amendments 1–4 are implemented (up to `4290a03`). Only amendment 5 remains. The test writer and the implementer can
@@ -771,7 +771,7 @@ grep -A1 -E "document.addEventListener\('(dragover|drop)'" src/popup.js | grep -
 grep -c "add-warranty\|warranty-on\|Додај датум истека гаранције\|✓ Отворено у новој картици\|За оба догађаја" src/popup.js src/popup.css   # each 0
 grep -c "За рачун и гаранцију скенирај рачун двапут." src/popup.js                                         # prints 1
 grep -c "Додај као:" src/popup.js                                                                           # prints 1
-grep -c "active: false\|active: true" src/popup.js                                                          # prints 0
+grep -c 'tabs.create({[^}]*active' src/popup.js                                                          # prints 0 (tabs.create calls only; main's tabs.query({ active: true, … }) in the scan-tab handler is untouched and not matched)
 
 # R11 / T23
 grep -nE "en-CA|\.format\(" src/calendar-url.js                # no output
@@ -838,7 +838,9 @@ Manual: H1–H20 behave as described in the Test plan.
   button. Each click opens the form for the current choice.
 - **A32 (new, A5).** The `chrome.tabs.create({ url })` call omits `active` for both choices, exactly as `main` does
   (the default is in front). Amendment 4's explicit `active: true` is dropped so that the purchase path matches
-  `main`; S4 checks that neither `active` form remains.
+  `main`. S4 checks that no `chrome.tabs.create({…})` call carries an `active` key. `main`'s unchanged
+  `chrome.tabs.query({ active: true, currentWindow: true })` in the scan-tab handler is out of scope; the grep does
+  not match it.
 - **A33 (new, A5).** T1 now holds a git-free golden value for `SALE`'s full purchase URL. T20 keeps the broader
   comparison with `main` where git is available.
 
