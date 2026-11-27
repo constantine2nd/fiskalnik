@@ -135,6 +135,12 @@ function renderWarranty(receipt, mainButton) {
   addWarranty.id = 'add-warranty';
 
   options.append(select, custom, endText, error, addWarranty);
+  // The popup closes after either button, so getting both events there takes a second scan.
+  if (!IN_TAB) {
+    const hint = el('p', 'warranty-hint', 'За оба догађаја скенирај рачун двапут: једном за куповину, једном за истек гаранције.');
+    hint.id = 'warranty-hint';
+    options.append(hint);
+  }
   box.append(toggle, options);
 
   const months = () => {
@@ -184,18 +190,23 @@ function renderWarranty(receipt, mainButton) {
   on.addEventListener('change', update);
   custom.addEventListener('input', update);
 
-  // One expiry tab per choice: the button stays off after a successful open until the choice changes.
+  // Opens the expiry form in front. The button stays disabled after success: in popup mode the page
+  // closes anyway, and in tab mode update() re-enables it on the next change of the choice.
   addWarranty.addEventListener('click', async () => {
-    addWarranty.disabled = true;                       // no second tab while this one opens
+    addWarranty.disabled = true;                     // a double click opens one form
     try {
-      await chrome.tabs.create({ url: buildWarrantyCalendarUrl(receipt, months()), active: false });
-      addWarranty.disabled = true;                     // stays off until the choice changes (update())
-      addWarranty.textContent = '✓ Отворено у новој картици';
-      setStatus('Догађај за истек гаранције је отворен у новој картици.');
+      await chrome.tabs.create({ url: buildWarrantyCalendarUrl(receipt, months()), active: true });
     } catch (err) {
       addWarranty.disabled = false;
       setStatus(err.message, 'error');
+      return;                                        // the popup stays open to show the error
     }
+    // The popup (and Firefox for Android's full-screen page) closes, as after "Додај у календар";
+    // the other event takes a second scan (hint below).
+    if (!IN_TAB) { window.close(); return; }
+    // The full-tab page stays open: mark this choice as opened until it changes (update()).
+    addWarranty.textContent = '✓ Отворено у новој картици';
+    setStatus('Догађај за истек гаранције је отворен у новој картици.');
   });
 
   return { box, months };

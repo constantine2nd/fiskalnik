@@ -115,6 +115,7 @@ kbd {
 #warranty-end, #warranty-error { flex-basis: 100%; margin: 0; font-size: 13px; }
 #warranty-error { color: var(--error); }
 #warranty-options button { margin: 0; }
+.warranty-hint { flex-basis: 100%; margin: 0; font-size: 12px; color: var(--muted); }
 body.mobile .warranty-toggle { min-height: 44px; font-size: 16px; }
 body.mobile #warranty-options select, body.mobile #warranty-options input { min-height: 44px; font-size: 16px; }
 
