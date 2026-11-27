@@ -139,7 +139,11 @@ function renderWarranty(receipt, mainButton) {
 
   const months = () => {
     if (!on.checked) return null;
-    if (select.value === 'custom') return normalizeWarrantyMonths(custom.value);
+    if (select.value === 'custom') {
+      // Read as the browser's number (empty or unparsable → NaN), so '24.0' counts as 24.
+      const n = custom.valueAsNumber;
+      return Number.isInteger(n) ? normalizeWarrantyMonths(n) : null;
+    }
     return Number(select.value);
   };
 

@@ -28,8 +28,8 @@ const DEFAULT_WARRANTY_MONTHS = 24;          // selected when the warranty is tu
 const MAX_WARRANTY_MONTHS = 120;             // custom periods above this are rejected
 const WARRANTY_MARK = '\u{1F6E1}';           // 🛡 (no U+FE0F)
 
-// The popup hands over a number (preset) or the raw text of the custom field, so both are
-// accepted, but only whole months in range: 24 → 24, ' 24 ' → 24, '1e2' → null, 121 → null.
+// Callers may hand over a number or text, so both are accepted, but only whole months in
+// range: 24 → 24, ' 24 ' → 24, '1e2' → null, 121 → null.
 function normalizeWarrantyMonths(value) {
   let n;
   if (typeof value === 'number') n = value;
@@ -59,12 +59,16 @@ function formatWarrantyDate({ year, month, day }) {
 
 // Compared with today's date in Belgrade, where the receipt was issued; the end day itself
 // still counts as covered: end 7.11.2028., now 2028-11-07T23:00:00Z (8 Nov in Belgrade) → true.
+// Today is read from the formatter's parts, never from the shape of a formatted string, which
+// differs between browser releases.
 function isWarrantyExpired({ year, month, day }, now = new Date()) {
-  const today = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Belgrade', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).format(now); // 'YYYY-MM-DD'
-  const end = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  return end < today;
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Belgrade', calendar: 'gregory', numberingSystem: 'latn',
+    year: 'numeric', month: 'numeric', day: 'numeric',
+  }).formatToParts(now);
+  const get = type => Number(parts.find(p => p.type === type).value);
+  const today = { year: get('year'), month: get('month'), day: get('day') };
+  return year * 10000 + month * 100 + day < today.year * 10000 + today.month * 100 + today.day;
 }
 
 // {2028, 11, 7} → '20281107', for all-day event dates.
@@ -72,6 +76,8 @@ function formatAllDayStamp({ year, month, day }) {
   return new Date(Date.UTC(year, month - 1, day)).toISOString().slice(0, 10).replace(/-/g, '');
 }
 
+// Throws the error the popup shows for a period that is not whole months from 1 to 120:
+// 24 → no throw; 0, '' or null → Error('Неисправан период гаранције: …').
 function checkWarrantyMonths(warrantyMonths) {
   if (normalizeWarrantyMonths(warrantyMonths) === null) {
     throw new Error('Неисправан период гаранције: ' + warrantyMonths);
@@ -83,17 +89,28 @@ function signedTotal(receipt) {
   return transactionKind(receipt.transactionType) === 'refund' ? '-' + total : total;
 }
 
-function buildReceiptDescription(receipt, itemLimit, warrantyMonths) {
-  const kind = transactionKind(receipt.transactionType);
-  const mark = TRANSACTION_MARK[kind];
-  const warrantyEnd = kind === 'sale' ? warrantyEndDate(receipt.dateTimeStr, warrantyMonths) : null;
-  const shown = receipt.items.slice(0, itemLimit);
-  const hidden = receipt.items.length - shown.length;
-  const itemLines = receipt.items.length
+// Shared by both descriptions, so their item lines and trimming are identical:
+// 3 items, itemLimit 1 → '• Espresso ×1 = 220,00 RSD\n… +2'; no items → '(no items parsed)'.
+function itemLinesText(items, itemLimit) {
+  const shown = items.slice(0, itemLimit);
+  const hidden = items.length - shown.length;
+  return items.length
     ? shown.map(it => `• ${it.name} ×${it.qty} = ${it.total} RSD`)
         .concat(hidden > 0 ? [`… +${hidden}`] : [])
         .join('\n')
     : '(no items parsed)';
+}
+
+// The 🛡 line ('🛡 Гаранција до: 7.11.2028.') only for a sale with a valid warrantyMonths.
+function warrantyLine(receipt, warrantyMonths) {
+  const end = transactionKind(receipt.transactionType) === 'sale'
+    ? warrantyEndDate(receipt.dateTimeStr, warrantyMonths) : null;
+  return end ? `${WARRANTY_MARK} Гаранција до: ${formatWarrantyDate(end)}` : '';
+}
+
+function buildReceiptDescription(receipt, itemLimit, warrantyMonths) {
+  const mark = TRANSACTION_MARK[transactionKind(receipt.transactionType)];
+  const itemLines = itemLinesText(receipt.items, itemLimit);
 
   return [
     receipt.merchantName,
@@ -108,13 +125,27 @@ function buildReceiptDescription(receipt, itemLimit, warrantyMonths) {
     itemLines,
     `💰 Укупно: ${signedTotal(receipt)} RSD`,
     receipt.vatTotal ? `🧾 ПДВ: ${receipt.vatTotal} RSD` : '',
-    warrantyEnd ? `${WARRANTY_MARK} Гаранција до: ${formatWarrantyDate(warrantyEnd)}` : '',
+    warrantyLine(receipt, warrantyMonths),
     `🔗 ${receipt.sourceUrl}`,
   ].filter(Boolean).join('\n');
 }
 
-// Long receipts: drop item lines from the end until the URL fits.
-// make(itemLimit) → URL; the 💰, 🧾, 🛡 and 🔗 lines are never dropped.
+// The expiry event's description: what was bought and where the receipt is, but no money,
+// payment or VAT line, so a copy saved to the Receipt Scanner's calendar adds no amount and no
+// payment method there. SALE + 24 → '🛡 Гаранција до: 7.11.2028.\n📋 …\n🕐 …\n🛒 Артикли:\n• …\n🔗 …'.
+function buildWarrantyDescription(receipt, itemLimit, warrantyMonths) {
+  return [
+    warrantyLine(receipt, warrantyMonths),
+    `📋 ${receipt.receiptNumber}`,
+    `🕐 ${receipt.dateTimeStr}`,
+    '🛒 Артикли:',
+    itemLinesText(receipt.items, itemLimit),
+    `🔗 ${receipt.sourceUrl}`,
+  ].filter(Boolean).join('\n');
+}
+
+// Long receipts: drop item lines from the end until the URL fits; the other lines are never
+// dropped. make(itemLimit) → URL; 150 long items → a URL of at most 6000 characters with '… +N'.
 function fitCalendarUrl(make, itemCount) {
   let limit = itemCount;
   let url = make(limit);
@@ -144,7 +175,8 @@ function buildCalendarUrl(receipt, warrantyMonths) {
 
 // A second, all-day event on the day the warranty ends: SALE (7.11.2026.) + 24 →
 // text 'Гаранција истиче: KAFE PRIMER DOO', dates '20281107/20281108' (end date exclusive).
-// The title has no ' — ', so the Receipt Scanner PWA never reads an amount from it.
+// The title never contains ' — ' (em dashes in the merchant name become '-'), so the Receipt
+// Scanner PWA never reads an amount from it: 'ALFA — BETA DOO' → 'Гаранција истиче: ALFA - BETA DOO'.
 function buildWarrantyCalendarUrl(receipt, warrantyMonths) {
   if (receiptWallTime(receipt.dateTimeStr) === null) {
     throw new Error('Датум рачуна није препознат: ' + receipt.dateTimeStr);
@@ -159,10 +191,10 @@ function buildWarrantyCalendarUrl(receipt, warrantyMonths) {
 
   const make = itemLimit => 'https://calendar.google.com/calendar/render?' + new URLSearchParams({
     action:   'TEMPLATE',
-    text:     receipt.merchantName ? `Гаранција истиче: ${receipt.merchantName}` : 'Гаранција истиче',
+    text:     receipt.merchantName ? 'Гаранција истиче: ' + receipt.merchantName.replace(/\u2014/g, '-') : 'Гаранција истиче',
     dates,
     ctz:      'Europe/Belgrade',
-    details:  buildReceiptDescription(receipt, itemLimit, warrantyMonths),
+    details:  buildWarrantyDescription(receipt, itemLimit, warrantyMonths),
     location: receipt.address,
   });
 
@@ -172,7 +204,7 @@ function buildWarrantyCalendarUrl(receipt, warrantyMonths) {
 // Node (tests): export the functions; in the browser they are plain globals.
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    buildCalendarUrl, buildReceiptDescription, buildWarrantyCalendarUrl,
+    buildCalendarUrl, buildReceiptDescription, buildWarrantyCalendarUrl, buildWarrantyDescription,
     normalizeWarrantyMonths, warrantyEndDate, formatWarrantyDate, isWarrantyExpired,
     WARRANTY_PRESETS, DEFAULT_WARRANTY_MONTHS, MAX_WARRANTY_MONTHS,
   };

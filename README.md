@@ -75,9 +75,9 @@ so events saved to its **Receipts** calendar show up there too.
 - Journals are read in Cyrillic. Latin-script journals and item lines with negative amounts (some refunds and
   discounts) haven't been tested on real receipts.
 - If the tax portal changes its page, fields may come out empty.
-- One warranty period per receipt. If you save the warranty event to the Receipt Scanner's **Receipts**
-  calendar, it shows up there as a receipt without an amount once its date has passed; save it to another
-  calendar.
+- One warranty period per receipt. Save the warranty event to a calendar other than the Receipt Scanner's
+  **Receipts** calendar. Once its date has passed, the Receipt Scanner shows any event in that calendar as a
+  receipt: without an amount, under an unknown payment method, and counted in the month's number of receipts.
 
 ## Publishing
 
